@@ -1,5 +1,6 @@
 'use strict';
 
+const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const helmet = require('helmet');
@@ -35,6 +36,12 @@ app.use(helmet({
 
 // Static files (uploads: technician photos, government IDs)
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+// Serve Frontend static assets if built into public/
+const publicDir = path.join(__dirname, '../public');
+if (fs.existsSync(publicDir)) {
+  app.use(express.static(publicDir));
+}
 
 // CORS
 app.use(
@@ -108,20 +115,33 @@ app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/public/job-report', publicJobReportRoutes);
 app.use('/api/v1/technician-plans', technicianPlanRoutes);
 
-// Root and Health check
-app.get('/', (req, res) => {
-  res.json({
-    success: true,
-    message: 'Karigar Setu Backend API is running successfully',
-    status: 'online',
-    version: '1.0.0',
-    documentation: '/api/v1/health'
-  });
-});
-
+// Health check
 app.get('/api/v1/health', (req, res) => {
   res.json({ success: true, message: 'Karigar Setu API is running', timestamp: new Date().toISOString() });
 });
+
+// If frontend build (index.html) exists in public/, serve it for all UI routes (SPA routing)
+const indexHtmlPath = path.join(publicDir, 'index.html');
+if (fs.existsSync(indexHtmlPath)) {
+  app.get('*', (req, res, next) => {
+    // If request starts with /api or /uploads, let it fall through to 404
+    if (req.originalUrl.startsWith('/api') || req.originalUrl.startsWith('/uploads')) {
+      return next();
+    }
+    res.sendFile(indexHtmlPath);
+  });
+} else {
+  // Fallback API welcome route if frontend is not bundled
+  app.get('/', (req, res) => {
+    res.json({
+      success: true,
+      message: 'Karigar Setu Backend API is running successfully',
+      status: 'online',
+      version: '1.0.0',
+      documentation: '/api/v1/health'
+    });
+  });
+}
 
 // 404 handler
 app.use((req, res) => {
