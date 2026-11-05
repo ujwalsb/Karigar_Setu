@@ -108,7 +108,17 @@ app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/public/job-report', publicJobReportRoutes);
 app.use('/api/v1/technician-plans', technicianPlanRoutes);
 
-// Health check
+// Root and Health check
+app.get('/', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Karigar Setu Backend API is running successfully',
+    status: 'online',
+    version: '1.0.0',
+    documentation: '/api/v1/health'
+  });
+});
+
 app.get('/api/v1/health', (req, res) => {
   res.json({ success: true, message: 'Karigar Setu API is running', timestamp: new Date().toISOString() });
 });
