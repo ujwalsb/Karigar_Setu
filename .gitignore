@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment configurations
+.env
+.env.local
+.env.*.local
+*.env
+**/.env
+**/.env.local
+**/.env.*.local
+!**/.env.example
+
+# Production builds
+dist/
+**/dist/
+build/
+**/build/
+
+# Uploaded media (photos, documents)
+US/backend/uploads/*
+!US/backend/uploads/.gitkeep
+!US/backend/uploads/machine_photos/.gitkeep
+!US/backend/uploads/technician_documents/.gitkeep
+
+# Logs and temp
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
