@@ -7,3 +7,4 @@ export function getMediaUrl(url: string | null | undefined): string {
   }
   return cleanPath
 }
+

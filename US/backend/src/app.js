@@ -154,9 +154,20 @@ app.use((req, res) => {
 // Global error handler
 app.use(errorHandler);
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Karigar Setu backend running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
-});
+const { initDatabase } = require('./config/initDb');
+
+// Start server after auto-initializing database tables
+initDatabase()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Karigar Setu backend running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
+    });
+  })
+  .catch((err) => {
+    console.error('Database auto-initialization error:', err);
+    app.listen(PORT, () => {
+      console.log(`Karigar Setu backend running on port ${PORT} (with DB warning)`);
+    });
+  });
 
 module.exports = app;

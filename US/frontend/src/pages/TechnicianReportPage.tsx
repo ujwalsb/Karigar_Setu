@@ -283,8 +283,8 @@ export function TechnicianReportPage() {
                     </Badge>
                     <Badge
                       className={`text-[10px] uppercase font-semibold h-5 px-2 ${job?.status === 'completed'
-                          ? 'bg-emerald-600 text-white'
-                          : 'bg-amber-100 text-amber-800 border border-amber-300'
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-amber-100 text-amber-800 border border-amber-300'
                         }`}
                     >
                       Status: {job?.status ? job.status.replace(/_/g, ' ') : 'Pending'}
@@ -511,8 +511,8 @@ export function TechnicianReportPage() {
                           type="button"
                           onClick={() => setPaymentMode(mode.id)}
                           className={`py-2 px-2.5 rounded-md border text-center font-medium transition-all ${paymentMode === mode.id
-                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
-                              : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
+                            : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
                             }`}
                         >
                           {mode.label}

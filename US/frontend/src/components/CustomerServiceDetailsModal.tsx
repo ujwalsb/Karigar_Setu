@@ -482,180 +482,180 @@ export function CustomerServiceDetailsModal({
                           {!isEditing ? (
                             <>
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs pt-1">
-                              {/* Left Box: What Work Done */}
-                              <div className="p-3 rounded-lg border border-indigo-100 bg-indigo-50/40 space-y-2">
-                                <div className="font-semibold text-indigo-900 text-xs flex items-center gap-1.5 uppercase tracking-wide">
-                                  <Wrench className="h-3.5 w-3.5 text-indigo-600" />
-                                  What Work Done &amp; Diagnosis
-                                </div>
-                                <div className="text-slate-800 leading-relaxed font-normal bg-white p-2.5 rounded border border-indigo-100/60 text-xs min-h-[46px]">
-                                  {r.work_description || (
-                                    <span className="text-slate-400 italic">
-                                      No detailed work notes entered yet. Click &quot;Edit Work &amp; Amount&quot; to record diagnosis and repairs.
-                                    </span>
+                                {/* Left Box: What Work Done */}
+                                <div className="p-3 rounded-lg border border-indigo-100 bg-indigo-50/40 space-y-2">
+                                  <div className="font-semibold text-indigo-900 text-xs flex items-center gap-1.5 uppercase tracking-wide">
+                                    <Wrench className="h-3.5 w-3.5 text-indigo-600" />
+                                    What Work Done &amp; Diagnosis
+                                  </div>
+                                  <div className="text-slate-800 leading-relaxed font-normal bg-white p-2.5 rounded border border-indigo-100/60 text-xs min-h-[46px]">
+                                    {r.work_description || (
+                                      <span className="text-slate-400 italic">
+                                        No detailed work notes entered yet. Click &quot;Edit Work &amp; Amount&quot; to record diagnosis and repairs.
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {r.parts_replaced && (
+                                    <div className="text-[11px] text-slate-700 bg-white px-2.5 py-1.5 rounded border border-indigo-100/60">
+                                      <strong className="text-indigo-800">Parts Replaced: </strong>
+                                      {r.parts_replaced}
+                                    </div>
+                                  )}
+
+                                  {r.technician_remarks && (
+                                    <div className="text-[11px] text-slate-600 bg-white px-2.5 py-1.5 rounded border border-indigo-100/60">
+                                      <strong className="text-slate-800">Technician Remarks: </strong>
+                                      {r.technician_remarks}
+                                    </div>
+                                  )}
+
+                                  {(r.requirement || r.problem_description) && (
+                                    <div className="text-[11px] text-slate-500 pt-1">
+                                      <strong>Original Complaint:</strong>{' '}
+                                      {r.requirement || r.problem_description}
+                                    </div>
                                   )}
                                 </div>
 
-                                {r.parts_replaced && (
-                                  <div className="text-[11px] text-slate-700 bg-white px-2.5 py-1.5 rounded border border-indigo-100/60">
-                                    <strong className="text-indigo-800">Parts Replaced: </strong>
-                                    {r.parts_replaced}
-                                  </div>
-                                )}
-
-                                {r.technician_remarks && (
-                                  <div className="text-[11px] text-slate-600 bg-white px-2.5 py-1.5 rounded border border-indigo-100/60">
-                                    <strong className="text-slate-800">Technician Remarks: </strong>
-                                    {r.technician_remarks}
-                                  </div>
-                                )}
-
-                                {(r.requirement || r.problem_description) && (
-                                  <div className="text-[11px] text-slate-500 pt-1">
-                                    <strong>Original Complaint:</strong>{' '}
-                                    {r.requirement || r.problem_description}
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Right Box: How Much Amount Taken & Payment */}
-                              <div className="p-3 rounded-lg border border-emerald-200 bg-emerald-50/50 space-y-2">
-                                <div className="font-semibold text-emerald-900 text-xs flex items-center justify-between uppercase tracking-wide">
-                                  <span className="flex items-center gap-1.5">
-                                    <IndianRupee className="h-3.5 w-3.5 text-emerald-600" />
-                                    Amount Taken &amp; Billing
-                                  </span>
-                                  <Badge
-                                    className={`text-[10px] uppercase font-semibold h-4 px-1.5 ${r.payment_status === 'paid'
-                                      ? 'bg-emerald-600 text-white'
-                                      : 'bg-amber-100 text-amber-800 border border-amber-300'
-                                      }`}
-                                  >
-                                    {r.payment_status || 'Pending'}
-                                  </Badge>
-                                </div>
-
-                                <div className="bg-white p-2.5 rounded border border-emerald-200/80 space-y-1.5">
-                                  <div className="flex items-center justify-between text-base font-bold text-slate-900">
-                                    <span>Total Amount Taken:</span>
-                                    <span className="font-mono text-emerald-700 text-lg">
-                                      ₹{Number(r.final_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                {/* Right Box: How Much Amount Taken & Payment */}
+                                <div className="p-3 rounded-lg border border-emerald-200 bg-emerald-50/50 space-y-2">
+                                  <div className="font-semibold text-emerald-900 text-xs flex items-center justify-between uppercase tracking-wide">
+                                    <span className="flex items-center gap-1.5">
+                                      <IndianRupee className="h-3.5 w-3.5 text-emerald-600" />
+                                      Amount Taken &amp; Billing
                                     </span>
+                                    <Badge
+                                      className={`text-[10px] uppercase font-semibold h-4 px-1.5 ${r.payment_status === 'paid'
+                                        ? 'bg-emerald-600 text-white'
+                                        : 'bg-amber-100 text-amber-800 border border-amber-300'
+                                        }`}
+                                    >
+                                      {r.payment_status || 'Pending'}
+                                    </Badge>
                                   </div>
 
-                                  <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100 text-[11px] text-slate-600">
-                                    <div>
-                                      Labor Charge: <strong>₹{Number(r.labor_charge || 0).toFixed(2)}</strong>
+                                  <div className="bg-white p-2.5 rounded border border-emerald-200/80 space-y-1.5">
+                                    <div className="flex items-center justify-between text-base font-bold text-slate-900">
+                                      <span>Total Amount Taken:</span>
+                                      <span className="font-mono text-emerald-700 text-lg">
+                                        ₹{Number(r.final_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                      </span>
                                     </div>
-                                    <div>
-                                      Parts Charge: <strong>₹{Number(r.parts_charge || 0).toFixed(2)}</strong>
-                                    </div>
-                                    <div>
-                                      Payment Mode:{' '}
-                                      <strong className="uppercase">{r.payment_mode || 'Cash'}</strong>
-                                    </div>
-                                    <div>
-                                      Date:{' '}
-                                      <strong>{formatDate(r.completed_at || r.updated_at)}</strong>
+
+                                    <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100 text-[11px] text-slate-600">
+                                      <div>
+                                        Labor Charge: <strong>₹{Number(r.labor_charge || 0).toFixed(2)}</strong>
+                                      </div>
+                                      <div>
+                                        Parts Charge: <strong>₹{Number(r.parts_charge || 0).toFixed(2)}</strong>
+                                      </div>
+                                      <div>
+                                        Payment Mode:{' '}
+                                        <strong className="uppercase">{r.payment_mode || 'Cash'}</strong>
+                                      </div>
+                                      <div>
+                                        Date:{' '}
+                                        <strong>{formatDate(r.completed_at || r.updated_at)}</strong>
+                                      </div>
                                     </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>
 
-                            {/* DEDICATED SECTION: One Photo of Repaired Machine / Appliance */}
-                            <div className="mt-3 p-3 rounded-lg border border-indigo-200 bg-white space-y-2 shadow-2xs">
-                              <div className="flex items-center justify-between">
-                                <div className="font-bold text-slate-900 text-xs flex items-center gap-2">
-                                  <Camera className="h-4 w-4 text-indigo-600" />
-                                  <span>One Photo of Repaired Machine / Appliance</span>
+                              {/* DEDICATED SECTION: One Photo of Repaired Machine / Appliance */}
+                              <div className="mt-3 p-3 rounded-lg border border-indigo-200 bg-white space-y-2 shadow-2xs">
+                                <div className="flex items-center justify-between">
+                                  <div className="font-bold text-slate-900 text-xs flex items-center gap-2">
+                                    <Camera className="h-4 w-4 text-indigo-600" />
+                                    <span>One Photo of Repaired Machine / Appliance</span>
+                                  </div>
+                                  {r.machine_photo_url ? (
+                                    <Badge className="bg-emerald-600 text-white text-[10px] font-semibold flex items-center gap-1">
+                                      <CheckCircle2 className="h-3 w-3" /> Photo Attached
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="text-slate-400 border-slate-300 text-[10px]">
+                                      No Photo Yet
+                                    </Badge>
+                                  )}
                                 </div>
+
                                 {r.machine_photo_url ? (
-                                  <Badge className="bg-emerald-600 text-white text-[10px] font-semibold flex items-center gap-1">
-                                    <CheckCircle2 className="h-3 w-3" /> Photo Attached
-                                  </Badge>
+                                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-slate-50/80 p-3 rounded-lg border border-slate-200/80">
+                                    <div
+                                      className="relative group cursor-pointer shrink-0"
+                                      onClick={() => setPreviewImage(r.machine_photo_url)}
+                                      title="Click to zoom machine photo"
+                                    >
+                                      <img
+                                        src={getMediaUrl(r.machine_photo_url)}
+                                        alt="Repaired Machine / Appliance"
+                                        className="h-24 w-24 sm:h-28 sm:w-28 object-cover rounded-lg border-2 border-indigo-200 shadow-sm transition-transform group-hover:scale-105"
+                                      />
+                                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center text-white text-[11px] font-medium">
+                                        Click to Zoom
+                                      </div>
+                                    </div>
+
+                                    <div className="space-y-1.5 flex-1 min-w-0">
+                                      <div className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
+                                        <span>Repaired Appliance Photo Submitted by Technician</span>
+                                      </div>
+                                      <p className="text-[11px] text-slate-500 leading-relaxed">
+                                        This on-site photo was submitted by {r.technician_name || 'the technician'} upon completing diagnosis, repairs, and parts replacement.
+                                      </p>
+                                      {r.technician_remarks && (
+                                        <div className="text-[11px] text-slate-700 bg-white p-2 rounded border border-slate-200">
+                                          <strong>Technician Remarks:</strong> {r.technician_remarks}
+                                        </div>
+                                      )}
+                                      <div className="pt-1 flex items-center gap-2">
+                                        <Button
+                                          type="button"
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => setPreviewImage(r.machine_photo_url)}
+                                          className="h-7 text-xs text-indigo-700 border-indigo-300 bg-indigo-50 hover:bg-indigo-100 flex items-center gap-1 font-medium"
+                                        >
+                                          <Camera className="h-3.5 w-3.5" />
+                                          Enlarge / Zoom Photo
+                                        </Button>
+                                        <a
+                                          href={getMediaUrl(r.machine_photo_url)}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          className="text-xs text-indigo-600 hover:underline flex items-center gap-1 font-medium ml-1"
+                                        >
+                                          Open Full Image <ExternalLink className="h-3 w-3" />
+                                        </a>
+                                      </div>
+                                    </div>
+                                  </div>
                                 ) : (
-                                  <Badge variant="outline" className="text-slate-400 border-slate-300 text-[10px]">
-                                    No Photo Yet
-                                  </Badge>
+                                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-2.5 rounded-md border border-dashed border-slate-200 bg-slate-50 text-slate-500 text-xs">
+                                    <div className="flex items-center gap-2">
+                                      <div className="h-7 w-7 rounded-full bg-slate-200 flex items-center justify-center text-slate-400 shrink-0">
+                                        <Camera className="h-3.5 w-3.5" />
+                                      </div>
+                                      <span>No machine photo uploaded yet for this service request.</span>
+                                    </div>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => {
+                                        setSelectedSubmissionReqId(r.id)
+                                        setIsSendLinkModalOpen(true)
+                                      }}
+                                      className="h-6 text-[10px] text-indigo-700 border-indigo-200 bg-indigo-50 hover:bg-indigo-100 flex items-center gap-1 font-medium shrink-0"
+                                    >
+                                      <Share2 className="h-2.5 w-2.5" />
+                                      Send Photo Submission Link
+                                    </Button>
+                                  </div>
                                 )}
                               </div>
-
-                              {r.machine_photo_url ? (
-                                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-slate-50/80 p-3 rounded-lg border border-slate-200/80">
-                                  <div
-                                    className="relative group cursor-pointer shrink-0"
-                                    onClick={() => setPreviewImage(r.machine_photo_url)}
-                                    title="Click to zoom machine photo"
-                                  >
-                                    <img
-                                      src={getMediaUrl(r.machine_photo_url)}
-                                      alt="Repaired Machine / Appliance"
-                                      className="h-24 w-24 sm:h-28 sm:w-28 object-cover rounded-lg border-2 border-indigo-200 shadow-sm transition-transform group-hover:scale-105"
-                                    />
-                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center text-white text-[11px] font-medium">
-                                      Click to Zoom
-                                    </div>
-                                  </div>
-
-                                  <div className="space-y-1.5 flex-1 min-w-0">
-                                    <div className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
-                                      <span>Repaired Appliance Photo Submitted by Technician</span>
-                                    </div>
-                                    <p className="text-[11px] text-slate-500 leading-relaxed">
-                                      This on-site photo was submitted by {r.technician_name || 'the technician'} upon completing diagnosis, repairs, and parts replacement.
-                                    </p>
-                                    {r.technician_remarks && (
-                                      <div className="text-[11px] text-slate-700 bg-white p-2 rounded border border-slate-200">
-                                        <strong>Technician Remarks:</strong> {r.technician_remarks}
-                                      </div>
-                                    )}
-                                    <div className="pt-1 flex items-center gap-2">
-                                      <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => setPreviewImage(r.machine_photo_url)}
-                                        className="h-7 text-xs text-indigo-700 border-indigo-300 bg-indigo-50 hover:bg-indigo-100 flex items-center gap-1 font-medium"
-                                      >
-                                        <Camera className="h-3.5 w-3.5" />
-                                        Enlarge / Zoom Photo
-                                      </Button>
-                                      <a
-                                        href={getMediaUrl(r.machine_photo_url)}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="text-xs text-indigo-600 hover:underline flex items-center gap-1 font-medium ml-1"
-                                      >
-                                        Open Full Image <ExternalLink className="h-3 w-3" />
-                                      </a>
-                                    </div>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-2.5 rounded-md border border-dashed border-slate-200 bg-slate-50 text-slate-500 text-xs">
-                                  <div className="flex items-center gap-2">
-                                    <div className="h-7 w-7 rounded-full bg-slate-200 flex items-center justify-center text-slate-400 shrink-0">
-                                      <Camera className="h-3.5 w-3.5" />
-                                    </div>
-                                    <span>No machine photo uploaded yet for this service request.</span>
-                                  </div>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                      setSelectedSubmissionReqId(r.id)
-                                      setIsSendLinkModalOpen(true)
-                                    }}
-                                    className="h-6 text-[10px] text-indigo-700 border-indigo-200 bg-indigo-50 hover:bg-indigo-100 flex items-center gap-1 font-medium shrink-0"
-                                  >
-                                    <Share2 className="h-2.5 w-2.5" />
-                                    Send Photo Submission Link
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
-                          </>
+                            </>
                           ) : (
                             /* INLINE EDIT FORM: Update Work Done & Amount Taken */
                             <div className="p-3.5 rounded-lg border border-indigo-300 bg-indigo-50/50 space-y-3 text-xs">
