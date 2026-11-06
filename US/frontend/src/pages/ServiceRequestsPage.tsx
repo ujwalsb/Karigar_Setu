@@ -9,6 +9,7 @@ import { formatDate, getStatusColor } from '@/lib/utils'
 import { DispatchModal } from '@/components/DispatchModal'
 import { SendReportLinkModal } from '@/components/SendReportLinkModal'
 import { DispatchDetails } from '@/lib/dispatch'
+import { getMediaUrl } from '@/utils/media'
 
 export function ServiceRequestsPage() {
   const [requests, setRequests] = useState<any[]>([])
@@ -143,7 +144,7 @@ export function ServiceRequestsPage() {
                         <div>{r.request_id || `#${r.id}`}</div>
                         {r.machine_photo_url && (
                           <a
-                            href={r.machine_photo_url.startsWith('http') ? r.machine_photo_url : `http://localhost:5002${r.machine_photo_url}`}
+                            href={getMediaUrl(r.machine_photo_url)}
                             target="_blank"
                             rel="noreferrer"
                             className="inline-flex items-center gap-1 text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded mt-1 hover:underline"

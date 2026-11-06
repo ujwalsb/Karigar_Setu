@@ -1,7 +1,19 @@
 import axios from 'axios'
 
+function getApiBaseUrl(): string {
+  const envUrl = import.meta.env.VITE_API_URL
+  // If in browser on production / deployed domain (non-localhost)
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    // If VITE_API_URL is missing or was baked in with localhost, use relative /api/v1
+    if (!envUrl || envUrl.includes('localhost') || envUrl.includes('127.0.0.1')) {
+      return '/api/v1'
+    }
+  }
+  return envUrl || '/api/v1'
+}
+
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api/v1',
+  baseURL: getApiBaseUrl(),
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',

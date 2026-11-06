@@ -43,7 +43,7 @@ export function LoginPage() {
       }
     } catch (err: any) {
       if (err.message === 'Network Error' || err.message?.includes('Network')) {
-        setError('Cannot connect to the backend server. Please ensure the backend is running on port 5002.')
+        setError('Cannot connect to the backend server. Please verify your internet connection or server status.')
       } else {
         setError(err.message || 'Login failed. Please check your credentials.')
       }
@@ -68,7 +68,7 @@ export function LoginPage() {
       setIsSetupAdmin(false)
     } catch (err: any) {
       if (err.message === 'Network Error' || err.message?.includes('Network')) {
-        setError('Cannot connect to the backend server. Please ensure the backend is running on port 5002.')
+        setError('Cannot connect to the backend server. Please verify your internet connection or server status.')
       } else {
         setError(err.message || 'Failed to setup admin account. It may already exist.')
       }

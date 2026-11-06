@@ -32,6 +32,7 @@ import {
 } from 'lucide-react'
 import { formatDate, getStatusColor } from '@/lib/utils'
 import { CustomerServiceDetailsModal } from '@/components/CustomerServiceDetailsModal'
+import { getMediaUrl } from '@/utils/media'
 
 export function CallsPage() {
   const [calls, setCalls] = useState<any[]>([])
@@ -374,14 +375,9 @@ export function CallsPage() {
                                 title="Click to enlarge machine photo"
                               >
                                 <img
-                                  src={photoUrl.startsWith('http') ? photoUrl : photoUrl}
+                                  src={getMediaUrl(photoUrl)}
                                   alt="Repaired Appliance"
                                   className="h-12 w-12 object-cover rounded-md border border-slate-300 shadow-2xs group-hover:opacity-90 group-hover:scale-105 transition-all"
-                                  onError={(e: any) => {
-                                    if (!e.currentTarget.src.includes(':5002')) {
-                                      e.currentTarget.src = `http://localhost:5002${photoUrl}`
-                                    }
-                                  }}
                                 />
                                 <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity rounded-md flex items-center justify-center text-white text-[9px] font-bold">
                                   Zoom
@@ -467,21 +463,16 @@ export function CallsPage() {
             <div className="pt-2 text-center space-y-3">
               <div className="bg-slate-900/5 p-2 rounded-lg border border-slate-200">
                 <img
-                  src={previewPhoto.startsWith('http') ? previewPhoto : previewPhoto}
+                  src={getMediaUrl(previewPhoto)}
                   alt="Repaired Appliance"
                   className="max-h-[65vh] w-auto mx-auto rounded shadow-sm object-contain"
-                  onError={(e: any) => {
-                    if (!e.currentTarget.src.includes(':5002')) {
-                      e.currentTarget.src = `http://localhost:5002${previewPhoto}`
-                    }
-                  }}
                 />
               </div>
               <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
                 <span>Verified technician on-site capture</span>
                 <div className="flex items-center gap-2">
                   <a
-                    href={previewPhoto.startsWith('http') ? previewPhoto : `http://localhost:5002${previewPhoto}`}
+                    href={getMediaUrl(previewPhoto)}
                     target="_blank"
                     rel="noreferrer"
                     className="text-indigo-600 hover:underline flex items-center gap-1 font-medium text-xs mr-2"

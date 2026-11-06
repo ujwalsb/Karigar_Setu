@@ -36,6 +36,7 @@ import {
   Camera
 } from 'lucide-react'
 import { SendReportLinkModal } from '@/components/SendReportLinkModal'
+import { getMediaUrl } from '@/utils/media'
 
 interface CustomerServiceDetailsModalProps {
   open: boolean
@@ -588,14 +589,9 @@ export function CustomerServiceDetailsModal({
                                     title="Click to zoom machine photo"
                                   >
                                     <img
-                                      src={r.machine_photo_url.startsWith('http') ? r.machine_photo_url : r.machine_photo_url}
+                                      src={getMediaUrl(r.machine_photo_url)}
                                       alt="Repaired Machine / Appliance"
                                       className="h-24 w-24 sm:h-28 sm:w-28 object-cover rounded-lg border-2 border-indigo-200 shadow-sm transition-transform group-hover:scale-105"
-                                      onError={(e: any) => {
-                                        if (!e.currentTarget.src.includes(':5002')) {
-                                          e.currentTarget.src = `http://localhost:5002${r.machine_photo_url}`
-                                        }
-                                      }}
                                     />
                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center text-white text-[11px] font-medium">
                                       Click to Zoom
@@ -626,7 +622,7 @@ export function CustomerServiceDetailsModal({
                                         Enlarge / Zoom Photo
                                       </Button>
                                       <a
-                                        href={r.machine_photo_url.startsWith('http') ? r.machine_photo_url : `http://localhost:5002${r.machine_photo_url}`}
+                                        href={getMediaUrl(r.machine_photo_url)}
                                         target="_blank"
                                         rel="noreferrer"
                                         className="text-xs text-indigo-600 hover:underline flex items-center gap-1 font-medium ml-1"
@@ -929,21 +925,16 @@ export function CustomerServiceDetailsModal({
             <div className="pt-2 text-center space-y-3">
               <div className="bg-slate-900/5 p-2 rounded-lg border border-slate-200">
                 <img
-                  src={previewImage.startsWith('http') ? previewImage : previewImage}
+                  src={getMediaUrl(previewImage)}
                   alt="Repaired Machine Full Resolution"
                   className="max-h-[65vh] w-auto mx-auto rounded shadow-sm object-contain"
-                  onError={(e: any) => {
-                    if (!e.currentTarget.src.includes(':5002')) {
-                      e.currentTarget.src = `http://localhost:5002${previewImage}`
-                    }
-                  }}
                 />
               </div>
               <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
                 <span>Verified technician site capture</span>
                 <div className="flex items-center gap-2">
                   <a
-                    href={previewImage.startsWith('http') ? previewImage : `http://localhost:5002${previewImage}`}
+                    href={getMediaUrl(previewImage)}
                     target="_blank"
                     rel="noreferrer"
                     className="text-indigo-600 hover:underline flex items-center gap-1 font-medium text-xs mr-2"
