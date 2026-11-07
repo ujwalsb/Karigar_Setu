@@ -330,6 +330,9 @@ INSERT IGNORE INTO `service_categories` (`name`, `description`, `icon`, `is_acti
 ('Plumbing Services & Leakage Repair', 'Pipe leakage, tap & mixer repair, bathroom fittings, flush tank, drainage clearing & water pump', 'plumbing', 1),
 ('Inverter & Battery UPS Repair', 'Inverter charging problems, battery electrolyte check, PCB card repair & backup troubleshooting', 'inverter', 1),
 ('Dishwasher Service & Repair', 'Spray arm blockage, drainage pump error, heating element & detergent dispenser repairs', 'dishwasher', 1),
-('Air Cooler Repair & Maintenance', 'Cooler motor replacement, submersible water pump, honeycomb cooling pad fitting & noise repair', 'air-cooler', 1);
+('Air Cooler Repair & Maintenance', 'Cooler motor replacement, submersible water pump, honeycomb cooling pad fitting & noise repair', 'air-cooler', 1),
+('Mixer Grinder, Juicer & Blender Repair', 'Motor burnt, coupler broken, blade jammed, jar leakage, speed switch failure', 'mixer-grinder', 1),
+('Gas Stove & Cooktop Repair', 'Low flame, yellow flame, burner clogged, gas leak check, nozzle replacement', 'gas-stove', 1);
 
 SET FOREIGN_KEY_CHECKS = 1;
+

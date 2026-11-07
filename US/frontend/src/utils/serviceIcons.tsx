@@ -13,6 +13,7 @@ import {
   Wrench,
   BatteryCharging,
   Sparkles,
+  UtensilsCrossed,
   HelpCircle
 } from 'lucide-react'
 
@@ -179,6 +180,28 @@ export function getServiceMeta(iconKey?: string, serviceName?: string): ServiceM
       borderColor: 'border-teal-200',
       commonIssues: ['Cooler Motor Burnt', 'Water Pump Not Lifting', 'Honeycomb Pad Smelling', 'Fan Blade Jammed', 'Water Tank Leakage'],
       sampleProblem: 'Desert air cooler pump not lifting water to side pads'
+    }
+  }
+
+  if (key.includes('mixer') || key.includes('grinder') || key.includes('juicer') || key.includes('blender')) {
+    return {
+      icon: UtensilsCrossed,
+      color: 'text-amber-700',
+      bgColor: 'bg-amber-50',
+      borderColor: 'border-amber-200',
+      commonIssues: ['Motor burnt', 'Coupler broken', 'Blade jammed', 'Jar leakage', 'Speed switch failure', 'Overload reset tripping'],
+      sampleProblem: 'Mixer grinder motor burnt smell and jar coupler broken'
+    }
+  }
+
+  if (key.includes('gas') || key.includes('stove') || key.includes('cooktop')) {
+    return {
+      icon: Flame,
+      color: 'text-rose-600',
+      bgColor: 'bg-rose-50',
+      borderColor: 'border-rose-200',
+      commonIssues: ['Low flame', 'Yellow flame', 'Burner clogged', 'Gas leak check', 'Nozzle replacement', 'Auto-ignition not sparking'],
+      sampleProblem: 'Gas stove burner clogged with low yellow flame and smell of gas'
     }
   }
 

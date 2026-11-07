@@ -340,34 +340,59 @@ async function initDatabase() {
       console.log('[Database Init] Initial Admin account created: admin@karigarsetu.com / Admin@123');
     }
 
-    // 18. Seed Service Categories (if none exist)
-    const [catRows] = await db.query(`SELECT id FROM service_categories LIMIT 1`);
-    if (catRows.length === 0) {
-      const categories = [
-        ['Air Conditioner (AC) Repair & Service', 'Split & Window AC repair, deep jet pump servicing, gas leak refilling, cooling coil & inverter PCB repair', 'air-conditioner'],
-        ['Refrigerator (Fridge) & Freezer Repair', 'Single door, double door, frost-free & deep freezer cooling repair, compressor & gas charging', 'refrigerator'],
-        ['Washing Machine & Dryer Repair', 'Front load, top load, semi-automatic drum motor issues, spin cycle, drainage & PCB repair', 'washing-machine'],
-        ['Normal / General Home Repair & Handyman', 'Daily general household fixes, door locks, fixtures, drill & hang, furniture assembly, minor carpentry', 'home-repair'],
-        ['Television (TV) & LED / Smart TV Repair', 'Smart TV, LED/LCD, OLED display backlight repair, sound problems, motherboard & HDMI issues', 'tv'],
-        ['Geyser & Water Heater Repair', 'Instant & storage geysers, heating coil change, thermostat repair, water leakage & electrical tripping', 'water-heater'],
-        ['Kitchen Chimney & Hob Repair', 'Chimney deep degreasing, suction blower motor repair, gas hob auto-ignition & burner fixing', 'chimney'],
-        ['Water Purifier (RO / UV) Service', 'RO membrane replacement, sediment/carbon filter changes, TDS balancing & booster pump repair', 'water-purifier'],
-        ['Microwave Oven & OTG Repair', 'Solo, grill, convection microwave oven repair, magnetron, turntable motor & touch panel fix', 'microwave'],
-        ['Electrical Wiring & Repair', 'Short circuit repair, switchboard replacement, ceiling fan repair, MCB tripping & house wiring', 'electrical'],
-        ['Plumbing Services & Leakage Repair', 'Pipe leakage, tap & mixer repair, bathroom fittings, flush tank, drainage clearing & water pump', 'plumbing'],
-        ['Inverter & Battery UPS Repair', 'Inverter charging problems, battery electrolyte check, PCB card repair & backup troubleshooting', 'inverter'],
-        ['Dishwasher Service & Repair', 'Spray arm blockage, drainage pump error, heating element & detergent dispenser repairs', 'dishwasher'],
-        ['Air Cooler Repair & Maintenance', 'Cooler motor replacement, submersible water pump, honeycomb cooling pad fitting & noise repair', 'air-cooler']
-      ];
+    // 18. Seed & Sync All Official Service Categories
+    const categories = [
+      ['Air Conditioner (AC) Repair & Service', 'Split & Window AC repair, deep jet pump servicing, gas leak refilling, cooling coil & inverter PCB repair', 'air-conditioner'],
+      ['Refrigerator (Fridge) & Freezer Repair', 'Single door, double door, frost-free & deep freezer cooling repair, compressor & gas charging', 'refrigerator'],
+      ['Washing Machine & Dryer Repair', 'Front load, top load, semi-automatic drum motor issues, spin cycle, drainage & PCB repair', 'washing-machine'],
+      ['Normal / General Home Repair & Handyman', 'Daily general household fixes, door locks, fixtures, drill & hang, furniture assembly, minor carpentry', 'home-repair'],
+      ['Television (TV) & LED / Smart TV Repair', 'Smart TV, LED/LCD, OLED display backlight repair, sound problems, motherboard & HDMI issues', 'tv'],
+      ['Geyser & Water Heater Repair', 'Instant & storage geysers, heating coil change, thermostat repair, water leakage & electrical tripping', 'water-heater'],
+      ['Kitchen Chimney & Hob Repair', 'Chimney deep degreasing, suction blower motor repair, gas hob auto-ignition & burner fixing', 'chimney'],
+      ['Water Purifier (RO / UV) Service', 'RO membrane replacement, sediment/carbon filter changes, TDS balancing & booster pump repair', 'water-purifier'],
+      ['Microwave Oven & OTG Repair', 'Solo, grill, convection microwave oven repair, magnetron, turntable motor & touch panel fix', 'microwave'],
+      ['Electrical Wiring & Repair', 'Short circuit repair, switchboard replacement, ceiling fan repair, MCB tripping & house wiring', 'electrical'],
+      ['Plumbing Services & Leakage Repair', 'Pipe leakage, tap & mixer repair, bathroom fittings, flush tank, drainage clearing & water pump', 'plumbing'],
+      ['Inverter & Battery UPS Repair', 'Inverter charging problems, battery electrolyte check, PCB card repair & backup troubleshooting', 'inverter'],
+      ['Dishwasher Service & Repair', 'Spray arm blockage, drainage pump error, heating element & detergent dispenser repairs', 'dishwasher'],
+      ['Air Cooler Repair & Maintenance', 'Cooler motor replacement, submersible water pump, honeycomb cooling pad fitting & noise repair', 'air-cooler'],
+      ['Mixer Grinder, Juicer & Blender Repair', 'Motor burnt, coupler broken, blade jammed, jar leakage, speed switch failure', 'mixer-grinder'],
+      ['Gas Stove & Cooktop Repair', 'Low flame, yellow flame, burner clogged, gas leak check, nozzle replacement', 'gas-stove']
+    ];
 
-      for (const [name, desc, icon] of categories) {
-        await db.query(
+    for (const [name, desc, icon] of categories) {
+      const [existing] = await db.query('SELECT id FROM service_categories WHERE name = ?', [name]);
+      let catId;
+      if (existing.length === 0) {
+        const [result] = await db.query(
           `INSERT INTO service_categories (name, description, icon, is_active) VALUES (?, ?, ?, TRUE)`,
           [name, desc, icon]
         );
+        catId = result.insertId;
+      } else {
+        catId = existing[0].id;
+        await db.query(
+          `UPDATE service_categories SET description = ?, icon = ?, is_active = TRUE WHERE id = ?`,
+          [desc, icon, catId]
+        );
       }
-      console.log('[Database Init] 14 Official Service Categories seeded.');
+
+      // Map skills to technicians who don't have this category mapped yet
+      const [techs] = await db.query('SELECT id FROM technicians');
+      for (const t of techs) {
+        const [hasSkill] = await db.query(
+          'SELECT id FROM technician_skills WHERE technician_id = ? AND service_category_id = ?',
+          [t.id, catId]
+        );
+        if (hasSkill.length === 0) {
+          await db.query(
+            'INSERT INTO technician_skills (technician_id, service_category_id, specialization) VALUES (?, ?, ?)',
+            [t.id, catId, `${name} Specialist`]
+          );
+        }
+      }
     }
+    console.log('[Database Init] All 16 Official Service Categories verified and mapped to technicians.');
 
     console.log('[Database Init] Database ready and operational.');
   } catch (err) {
@@ -376,3 +401,4 @@ async function initDatabase() {
 }
 
 module.exports = { initDatabase };
+

@@ -31,7 +31,9 @@ async function runSeed() {
       ['Plumbing Services & Leakage Repair', 'Pipe leakage, tap & mixer repair, bathroom fittings, flush tank, drainage clearing & water pump', 'plumbing'],
       ['Inverter & Battery UPS Repair', 'Inverter charging problems, battery electrolyte check, PCB card repair & backup troubleshooting', 'inverter'],
       ['Dishwasher Service & Repair', 'Spray arm blockage, drainage pump error, heating element & detergent dispenser repairs', 'dishwasher'],
-      ['Air Cooler Repair & Maintenance', 'Cooler motor replacement, submersible water pump, honeycomb cooling pad fitting & noise repair', 'air-cooler']
+      ['Air Cooler Repair & Maintenance', 'Cooler motor replacement, submersible water pump, honeycomb cooling pad fitting & noise repair', 'air-cooler'],
+      ['Mixer Grinder, Juicer & Blender Repair', 'Motor burnt, coupler broken, blade jammed, jar leakage, speed switch failure', 'mixer-grinder'],
+      ['Gas Stove & Cooktop Repair', 'Low flame, yellow flame, burner clogged, gas leak check, nozzle replacement', 'gas-stove']
     ];
 
     for (const [name, desc, icon] of categories) {

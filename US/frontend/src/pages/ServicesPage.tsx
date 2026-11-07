@@ -182,6 +182,8 @@ export function ServicesPage() {
                     <option value="inverter">Inverter & Battery</option>
                     <option value="dishwasher">Dishwasher</option>
                     <option value="air-cooler">Air Cooler</option>
+                    <option value="mixer-grinder">Mixer Grinder, Juicer & Blender</option>
+                    <option value="gas-stove">Gas Stove & Cooktop</option>
                   </select>
                 </div>
                 <div className="md:col-span-2 space-y-1.5">
