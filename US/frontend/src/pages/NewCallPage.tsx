@@ -637,7 +637,7 @@ export function NewCallPage() {
           </CardContent>
         </Card>
 
-        <div className="flex items-center justify-between pt-2">
+        <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-3 pt-2">
           <div className="text-xs text-slate-500">
             {existingCustomer ? (
               <span className="text-emerald-700 font-medium flex items-center gap-1">
@@ -650,14 +650,14 @@ export function NewCallPage() {
             )}
           </div>
 
-          <div className="flex gap-3">
-            <Button type="button" variant="outline" onClick={() => navigate('/calls')}>
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+            <Button type="button" variant="outline" onClick={() => navigate('/calls')} className="w-full sm:w-auto">
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={loading}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium w-full sm:w-auto text-xs sm:text-sm"
             >
               {loading
                 ? 'Submitting Call...'

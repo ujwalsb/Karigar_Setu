@@ -936,7 +936,206 @@ export function TechniciansPage() {
       {/* Technicians List Table */}
       <Card className="border-slate-200 shadow-xs overflow-hidden bg-white">
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          {/* Mobile Card List (< md screens) */}
+          <div className="md:hidden divide-y divide-slate-100">
+            {loading ? (
+              <div className="py-12 text-center text-slate-400">
+                <div className="h-6 w-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                Loading technicians directory...
+              </div>
+            ) : technicians.length === 0 ? (
+              <div className="p-6 text-center text-slate-400">
+                No technicians found matching criteria.
+              </div>
+            ) : (
+              technicians.map((t) => {
+                const skillsList = t.skills || []
+                const displayedSkills = skillsList.slice(0, 3)
+                const extraSkillsCount = skillsList.length - 3
+                const docsList = t.documents || []
+
+                return (
+                  <div key={t.id} className="p-4 space-y-3 bg-white">
+                    {/* Header: Avatar, Name, Rating */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-3">
+                        {t.photo_url ? (
+                          <img
+                            src={t.photo_url}
+                            alt={t.full_name || t.name}
+                            onClick={() => openDetailsModal(t.id)}
+                            className="h-11 w-11 rounded-full object-cover border-2 border-indigo-200 shrink-0 cursor-pointer"
+                          />
+                        ) : (
+                          <div
+                            onClick={() => openDetailsModal(t.id)}
+                            className="h-11 w-11 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-xs shrink-0 border border-indigo-200 cursor-pointer"
+                          >
+                            {(t.full_name || t.name || 'T')
+                              .split(' ')
+                              .map((w: string) => w[0])
+                              .slice(0, 2)
+                              .join('')}
+                          </div>
+                        )}
+                        <div>
+                          <button
+                            type="button"
+                            onClick={() => openDetailsModal(t.id)}
+                            className="font-bold text-sm text-slate-900 hover:text-indigo-600 text-left flex items-center gap-1 group"
+                          >
+                            <span>{t.full_name || t.name}</span>
+                            <Eye className="h-3.5 w-3.5 text-indigo-500" />
+                          </button>
+                          <div className="text-[11px] text-slate-400 flex items-center gap-1.5 flex-wrap mt-0.5">
+                            <span>ID #{t.id}</span>
+                            <span>•</span>
+                            <span>{t.total_jobs || 0} jobs done</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Rating pill */}
+                      <div className="flex items-center gap-1 text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-bold text-xs shrink-0">
+                        <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                        {parseFloat(t.rating || '4.8').toFixed(1)}
+                      </div>
+                    </div>
+
+                    {/* Contact & Location */}
+                    <div className="flex items-center justify-between text-xs text-slate-600 bg-slate-50 p-2.5 rounded-lg border border-slate-100 flex-wrap gap-2">
+                      <a
+                        href={`tel:${t.mobile}`}
+                        className="inline-flex items-center gap-1 text-emerald-800 font-mono font-semibold hover:underline"
+                      >
+                        <Phone className="h-3.5 w-3.5 text-emerald-600" />
+                        {t.mobile}
+                      </a>
+                      <div className="flex items-center gap-1 text-slate-600 font-medium">
+                        <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                        <span>{t.area || 'Pune'}</span>
+                        <span className="text-slate-400 font-mono text-[11px]">({t.pin_code || '411001'})</span>
+                      </div>
+                    </div>
+
+                    {/* Skills pills */}
+                    <div className="flex flex-wrap gap-1">
+                      {displayedSkills.length > 0 ? (
+                        displayedSkills.map((s: any, idx: number) => (
+                          <span
+                            key={idx}
+                            className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-medium"
+                          >
+                            {(s.category_name || s.specialization || '').split('(')[0].replace('Repair', '').trim()}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-xs text-slate-400">All Appliances</span>
+                      )}
+                      {extraSkillsCount > 0 && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 font-medium">
+                          +{extraSkillsCount} more
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Plan, Availability & Documents */}
+                    <div className="flex items-center justify-between gap-2 flex-wrap text-xs pt-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {t.plan_type === 'monthly' ? (
+                          <span className="text-[10px] px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 font-semibold">
+                            Monthly (₹{t.monthly_fee || 999}/mo)
+                          </span>
+                        ) : (
+                          <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold">
+                            Commission ({t.commission_rate_type === 'fixed' ? `₹${t.commission_rate || 100}` : `${t.commission_rate || 10}%`})
+                          </span>
+                        )}
+
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] font-medium capitalize ${
+                            t.availability === 'available'
+                              ? 'border-emerald-300 text-emerald-700 bg-emerald-50'
+                              : t.availability === 'busy'
+                                ? 'border-amber-300 text-amber-700 bg-amber-50'
+                                : 'border-slate-300 text-slate-600 bg-slate-50'
+                          }`}
+                        >
+                          {t.availability || 'available'}
+                        </Badge>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => openDocsModal(t)}
+                        className={`inline-flex items-center gap-1 text-[10px] rounded px-2 py-0.5 font-medium border ${
+                          docsList.length > 0
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                            : 'bg-amber-50 text-amber-800 border-amber-200'
+                        }`}
+                      >
+                        <ShieldCheck className="h-3 w-3 text-emerald-600" />
+                        <span>{docsList.length > 0 ? `${docsList.length} ID Docs` : 'Upload ID'}</span>
+                      </button>
+                    </div>
+
+                    {/* Actions Toolbar */}
+                    <div className="flex items-center gap-1.5 pt-2 border-t border-slate-100">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => openDetailsModal(t.id)}
+                        className="flex-1 text-xs h-8 text-indigo-700 border-indigo-200 bg-indigo-50/70 hover:bg-indigo-100 flex items-center justify-center gap-1 font-medium"
+                      >
+                        <Wrench className="h-3 w-3" />
+                        Details
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 text-xs h-8 text-slate-700 hover:text-indigo-600 border-slate-200"
+                        onClick={() =>
+                          navigate(
+                            `/technicians/find?area=${encodeURIComponent(t.area || '')}&pincode=${t.pin_code || ''}`
+                          )
+                        }
+                      >
+                        Match Jobs →
+                      </Button>
+
+                      {isAdmin && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => openEditModal(t)}
+                            className="text-xs h-8 px-2 text-slate-700 border-slate-200"
+                            title="Edit technician"
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setDeletingTech(t)}
+                            className="text-xs h-8 px-2 text-rose-600 border-rose-200 hover:bg-rose-50"
+                            title="Delete technician"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )
+              })
+            )}
+          </div>
+
+          {/* Desktop Table (>= md screens) */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full min-w-[800px] text-left text-sm">
               <thead className="bg-slate-50 text-slate-500 border-b border-slate-200 uppercase text-[11px] font-semibold tracking-wider">
                 <tr>

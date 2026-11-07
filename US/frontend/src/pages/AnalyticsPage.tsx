@@ -35,11 +35,11 @@ export function AnalyticsPage() {
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Analytics & Reports</h1>
           <p className="text-sm text-slate-500">Service volumes, category distribution, and area demand</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => handleExport('csv')}>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Button variant="outline" size="sm" onClick={() => handleExport('csv')} className="flex-1 sm:flex-none justify-center">
             <Download className="h-4 w-4 mr-1.5" /> Export CSV
           </Button>
-          <Button variant="outline" size="sm" onClick={() => handleExport('excel')}>
+          <Button variant="outline" size="sm" onClick={() => handleExport('excel')} className="flex-1 sm:flex-none justify-center">
             <Download className="h-4 w-4 mr-1.5" /> Export Excel
           </Button>
         </div>

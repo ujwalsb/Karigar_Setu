@@ -108,7 +108,156 @@ export function ServiceRequestsPage() {
 
       <Card className="border-slate-200">
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          {/* Mobile Card List (< md screens) */}
+          <div className="md:hidden divide-y divide-slate-100">
+            {loading ? (
+              <div className="py-8 text-center text-slate-400">
+                <div className="h-6 w-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                Loading service requests...
+              </div>
+            ) : requests.length === 0 ? (
+              <div className="p-6 text-center text-slate-400 space-y-2">
+                <p className="font-medium text-slate-600">No active in-progress service requests.</p>
+                <p className="text-xs">
+                  Completed and cancelled customer services can be viewed on the{' '}
+                  <Link to="/calls" className="text-indigo-600 font-semibold hover:underline">
+                    Customer Calls
+                  </Link>{' '}
+                  page.
+                </p>
+              </div>
+            ) : (
+              requests.map((r) => (
+                <div key={r.id} className="p-4 space-y-3 bg-white">
+                  {/* Top Bar: Request ID & Status Badge */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-bold text-xs text-indigo-600">
+                        {r.request_id || `#${r.id}`}
+                      </span>
+                      {r.machine_photo_url && (
+                        <a
+                          href={getMediaUrl(r.machine_photo_url)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded hover:underline"
+                        >
+                          <Camera className="h-2.5 w-2.5" />
+                          Photo
+                        </a>
+                      )}
+                    </div>
+                    <span
+                      className={`px-2 py-0.5 rounded text-[10px] font-semibold capitalize ${getStatusColor(
+                        r.status
+                      )}`}
+                    >
+                      {r.status ? r.status.replace(/_/g, ' ') : 'Pending'}
+                    </span>
+                  </div>
+
+                  {/* Customer Info */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="font-semibold text-sm text-slate-900">
+                        {r.customer_name || 'Customer'}
+                      </div>
+                      {r.customer_mobile && (
+                        <a
+                          href={`tel:${r.customer_mobile}`}
+                          className="text-xs font-mono text-emerald-700 hover:underline inline-block mt-0.5"
+                        >
+                          {r.customer_mobile}
+                        </a>
+                      )}
+                      {(r.customer_area || r.customer_city) && (
+                        <div className="text-[11px] text-slate-400">
+                          {r.customer_area || r.customer_city || 'Pune'}
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-right text-[11px] text-slate-400">
+                      {formatDate(r.created_at || r.createdAt)}
+                    </div>
+                  </div>
+
+                  {/* Technician Info & Quick Dispatch */}
+                  <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-xs space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500 font-medium">Assigned Tech:</span>
+                      {r.technician_name ? (
+                        <span className="font-semibold text-slate-900">{r.technician_name}</span>
+                      ) : (
+                        <span className="text-slate-400 italic">Unassigned</span>
+                      )}
+                    </div>
+
+                    {r.technician_name ? (
+                      <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-200/60">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openDispatchForRow(r)}
+                          className="flex-1 text-xs h-7 px-2 text-emerald-700 border-emerald-300 bg-emerald-50 hover:bg-emerald-100 flex items-center justify-center gap-1 font-medium"
+                        >
+                          <Send className="h-3 w-3" />
+                          Dispatch Info
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedReportRequestId(r.id)
+                            setIsSendReportModalOpen(true)
+                          }}
+                          className="flex-1 text-xs h-7 px-2 text-indigo-700 border-indigo-300 bg-indigo-50 hover:bg-indigo-100 flex items-center justify-center gap-1 font-medium"
+                        >
+                          <Share2 className="h-3 w-3" />
+                          Report Link
+                        </Button>
+                        <Link
+                          to={`/technicians/find?serviceRequestId=${r.id}&category=${r.service_category_id || ''}&area=${encodeURIComponent(r.customer_area || '')}&pincode=${encodeURIComponent(r.customer_pin_code || '')}&customerName=${encodeURIComponent(r.customer_name || '')}`}
+                          className="text-xs text-amber-700 font-medium hover:underline px-1 py-1"
+                        >
+                          Reassign
+                        </Link>
+                      </div>
+                    ) : (
+                      <div className="pt-1 border-t border-slate-200/60 flex justify-end">
+                        <Link
+                          to={`/technicians/find?serviceRequestId=${r.id}&category=${r.service_category_id || ''}&area=${encodeURIComponent(r.customer_area || '')}&pincode=${encodeURIComponent(r.customer_pin_code || '')}&customerName=${encodeURIComponent(r.customer_name || '')}`}
+                        >
+                          <Button size="sm" className="h-7 text-xs bg-indigo-600 hover:bg-indigo-700 text-white">
+                            Match &amp; Assign Tech →
+                          </Button>
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Status Dropdown */}
+                  <div className="flex items-center justify-between gap-2 pt-1">
+                    <span className="text-xs text-slate-500 font-medium">Update Status:</span>
+                    <select
+                      value={r.status}
+                      onChange={(e) => handleStatusChange(r.id, e.target.value)}
+                      className="border border-slate-200 rounded px-2.5 py-1.5 text-xs bg-white text-slate-700 font-medium focus:ring-1 focus:ring-indigo-500"
+                    >
+                      <option value="new_call">New Call</option>
+                      <option value="technician_assigned">Technician Assigned</option>
+                      <option value="visit_scheduled">Visit Scheduled</option>
+                      <option value="work_in_progress">Work In Progress</option>
+                      <option value="completed">Completed</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Desktop Table (>= md screens) */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full min-w-[700px] text-left text-sm">
               <thead className="bg-slate-50 text-slate-500 border-b border-slate-200 uppercase text-[11px] font-semibold tracking-wider">
                 <tr>

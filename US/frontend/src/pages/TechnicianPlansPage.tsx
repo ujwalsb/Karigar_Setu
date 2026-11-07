@@ -486,8 +486,159 @@ export function TechnicianPlansPage() {
           </div>
         </div>
 
-        {/* Technicians Table */}
-        <div className="overflow-x-auto">
+        {/* Mobile Card List (< md screens) */}
+        <div className="md:hidden divide-y divide-slate-100">
+          {loading ? (
+            <div className="py-12 text-center text-slate-400">
+              <div className="h-6 w-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+              Loading technician plan records...
+            </div>
+          ) : filteredTechnicians.length === 0 ? (
+            <div className="p-6 text-center text-slate-400">
+              No technicians found matching criteria.
+            </div>
+          ) : (
+            filteredTechnicians.map((tech) => {
+              const isCommission = tech.plan_type === 'commission';
+              const isMonthly = tech.plan_type === 'monthly';
+
+              return (
+                <div key={tech.id} className="p-4 space-y-3 bg-white">
+                  {/* Top Bar: Avatar, Name, Plan Badge */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-3">
+                      {tech.photo_url ? (
+                        <img
+                          src={tech.photo_url}
+                          alt={tech.full_name}
+                          className="h-10 w-10 rounded-full object-cover border border-slate-200 shrink-0"
+                        />
+                      ) : (
+                        <div className="h-10 w-10 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-sm border border-indigo-200 shrink-0">
+                          {(tech.full_name || 'T').charAt(0)}
+                        </div>
+                      )}
+                      <div>
+                        <div className="font-semibold text-slate-900 flex items-center gap-1.5 text-sm">
+                          {tech.full_name}
+                          <span className="text-[10px] text-slate-400 font-mono">#{tech.id}</span>
+                        </div>
+                        <div className="text-[11px] text-slate-500 flex items-center gap-1.5 mt-0.5">
+                          <a href={`tel:${tech.mobile}`} className="text-emerald-700 font-mono font-medium hover:underline">
+                            {tech.mobile}
+                          </a>
+                          <span>•</span>
+                          <span>{tech.area || 'Pune'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {isCommission ? (
+                      <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[10px] font-semibold shrink-0">
+                        {tech.commission_rate_type === 'percentage'
+                          ? `${tech.commission_rate}%`
+                          : `₹${tech.commission_rate}/job`}
+                      </Badge>
+                    ) : (
+                      <Badge className="bg-blue-100 text-blue-800 border-blue-200 text-[10px] font-semibold shrink-0">
+                        ₹{tech.monthly_fee}/mo
+                      </Badge>
+                    )}
+                  </div>
+
+                  {/* Financial Status Summary */}
+                  <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-xs space-y-1.5">
+                    <div className="flex items-center justify-between text-slate-600">
+                      <span>Completed Jobs: <strong>{tech.completed_jobs}</strong></span>
+                      <span>Billed: <strong className="text-emerald-700 font-semibold">₹{tech.total_revenue_billed.toLocaleString('en-IN')}</strong></span>
+                    </div>
+
+                    {isCommission ? (
+                      <div className="pt-1.5 border-t border-slate-200/60 flex items-center justify-between">
+                        <div className="text-[11px] text-slate-500">
+                          Accrued: ₹{tech.total_commission_due.toLocaleString('en-IN')}
+                        </div>
+                        {tech.commission_balance > 0 ? (
+                          <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-300 text-[10px] font-bold">
+                            Balance Due: ₹{tech.commission_balance.toLocaleString('en-IN')}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-300 text-[10px] font-semibold">
+                            ✓ Settled
+                          </Badge>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="pt-1.5 border-t border-slate-200/60 flex items-center justify-between">
+                        <span className={`text-[11px] font-medium ${tech.is_subscription_expired ? 'text-rose-600 font-bold' : 'text-slate-600'}`}>
+                          {tech.is_subscription_expired ? 'Subscription Expired' : 'Active Subscription'}
+                        </span>
+                        {typeof tech.days_remaining === 'number' && (
+                          <span className="text-[11px] text-slate-500 font-mono">
+                            {tech.days_remaining > 0 ? `${tech.days_remaining}d left` : 'Expired'}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Actions Toolbar */}
+                  <div className="flex items-center gap-2 pt-1">
+                    {isCommission ? (
+                      <Button
+                        size="sm"
+                        onClick={() => handleOpenPayment(tech, 'commission_collection')}
+                        className={`flex-1 text-xs h-8 ${
+                          tech.commission_balance > 0
+                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white font-semibold'
+                            : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                        }`}
+                      >
+                        <IndianRupee className="h-3 w-3 mr-1" />
+                        {tech.commission_balance > 0
+                          ? `Collect ₹${tech.commission_balance.toLocaleString('en-IN')}`
+                          : 'Record Pay'}
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        onClick={() => handleOpenPayment(tech, 'monthly_renewal')}
+                        className="flex-1 text-xs h-8 bg-blue-600 hover:bg-blue-700 text-white font-semibold"
+                      >
+                        <CalendarDays className="h-3 w-3 mr-1" />
+                        Renew Plan
+                      </Button>
+                    )}
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleOpenEdit(tech)}
+                      className="text-xs h-8 px-2.5 text-slate-700 border-slate-200 flex items-center gap-1"
+                    >
+                      <Pencil className="h-3 w-3" />
+                      Plan
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleOpenLedger(tech)}
+                      className="text-xs h-8 px-2.5 text-indigo-700 border-indigo-200 bg-indigo-50/70 hover:bg-indigo-100 flex items-center gap-1"
+                      title="View Ledger"
+                    >
+                      <History className="h-3 w-3" />
+                      Ledger
+                    </Button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Desktop Technicians Table (>= md screens) */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-[850px]">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-100/60 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
@@ -729,7 +880,7 @@ export function TechnicianPlansPage() {
       {/* 1. EDIT PLAN MODAL                                                        */}
       {/* ========================================================================= */}
       <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
-        <DialogContent className="max-w-lg p-5">
+        <DialogContent className="max-w-lg max-h-[92vh] overflow-y-auto p-4 sm:p-5 bg-white w-[95vw] sm:w-full">
           <DialogHeader>
             <DialogTitle className="text-base sm:text-lg flex items-center gap-2">
               <Pencil className="h-4 w-4 text-indigo-600" />
@@ -961,7 +1112,7 @@ export function TechnicianPlansPage() {
       {/* 2. RECORD PAYMENT / RENEWAL MODAL                                         */}
       {/* ========================================================================= */}
       <Dialog open={paymentModalOpen} onOpenChange={setPaymentModalOpen}>
-        <DialogContent className="max-w-md p-5">
+        <DialogContent className="max-w-md max-h-[92vh] overflow-y-auto p-4 sm:p-5 bg-white w-[95vw] sm:w-full">
           <DialogHeader>
             <DialogTitle className="text-base sm:text-lg flex items-center gap-2">
               <CreditCard className="h-4 w-4 text-emerald-600" />
@@ -1121,7 +1272,7 @@ export function TechnicianPlansPage() {
       {/* 3. TRANSACTION LEDGER MODAL                                               */}
       {/* ========================================================================= */}
       <Dialog open={ledgerModalOpen} onOpenChange={setLedgerModalOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-5">
+        <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto p-4 sm:p-5 bg-white w-[95vw] sm:w-full">
           <DialogHeader>
             <DialogTitle className="text-base sm:text-lg flex items-center gap-2">
               <History className="h-5 w-5 text-indigo-600" />

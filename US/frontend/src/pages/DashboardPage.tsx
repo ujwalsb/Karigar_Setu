@@ -52,28 +52,28 @@ export function DashboardPage() {
   return (
     <div className="space-y-8">
       {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-indigo-700 to-indigo-900 rounded-2xl p-6 text-white shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-gradient-to-r from-indigo-700 to-indigo-900 rounded-2xl p-4 sm:p-6 text-white shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Welcome back, {user?.name}!</h1>
-          <p className="text-indigo-200 text-sm mt-1">
+          <h1 className="text-xl sm:text-2xl font-bold">Welcome back, {user?.name}!</h1>
+          <p className="text-indigo-200 text-xs sm:text-sm mt-1">
             Role: <span className="uppercase tracking-wider font-semibold">{user?.role}</span> | Centralized appliance service & repair hub
           </p>
         </div>
-        <div className="flex flex-wrap gap-3">
-          <Link to="/services">
-            <Button variant="outline" className="bg-white/10 hover:bg-white/20 text-white border-white/20">
+        <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-3 w-full md:w-auto">
+          <Link to="/services" className="w-full sm:w-auto">
+            <Button variant="outline" className="w-full sm:w-auto h-8 sm:h-9 text-xs sm:text-sm bg-white/10 hover:bg-white/20 text-white border-white/20 justify-center">
               <Layers className="h-4 w-4 mr-2" />
               Services Catalog ({categories.length})
             </Button>
           </Link>
-          <Link to="/technicians/find">
-            <Button variant="outline" className="bg-white/10 hover:bg-white/20 text-white border-white/20">
+          <Link to="/technicians/find" className="w-full sm:w-auto">
+            <Button variant="outline" className="w-full sm:w-auto h-8 sm:h-9 text-xs sm:text-sm bg-white/10 hover:bg-white/20 text-white border-white/20 justify-center">
               <Search className="h-4 w-4 mr-2" />
               Find Technician
             </Button>
           </Link>
-          <Link to="/calls/new">
-            <Button className="bg-white text-indigo-900 hover:bg-slate-100 font-semibold shadow-md">
+          <Link to="/calls/new" className="w-full sm:w-auto">
+            <Button className="w-full sm:w-auto h-8 sm:h-9 text-xs sm:text-sm bg-white text-indigo-900 hover:bg-slate-100 font-semibold shadow-md justify-center">
               <PhoneCall className="h-4 w-4 mr-2" />
               Register Call
             </Button>
@@ -82,7 +82,7 @@ export function DashboardPage() {
       </div>
 
       {/* Metric Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         <Card className="border-slate-200 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-slate-500">Today&apos;s Calls</CardTitle>

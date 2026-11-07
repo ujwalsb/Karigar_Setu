@@ -220,7 +220,205 @@ export function CallsPage() {
       {/* Customer Calls Table */}
       <Card className="border-slate-200">
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          {/* Mobile Card List (< md screens) */}
+          <div className="md:hidden divide-y divide-slate-100">
+            {loading ? (
+              <div className="py-10 text-center text-slate-400">
+                <div className="h-6 w-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                Loading customer calls...
+              </div>
+            ) : calls.length === 0 ? (
+              <div className="p-6 text-center text-slate-400 space-y-2">
+                <p className="font-medium text-slate-600">
+                  {activeTab === 'completed'
+                    ? 'No completed customer services found.'
+                    : 'No customer calls match your filter.'}
+                </p>
+                <p className="text-xs">
+                  When technicians submit their job completion report, completed customers will appear here.
+                </p>
+              </div>
+            ) : (
+              calls.map((call) => {
+                const isCompleted = call.status === 'completed'
+                const photoUrl = call.machine_photo_url
+
+                return (
+                  <div key={call.id} className="p-4 space-y-3 bg-white">
+                    {/* Top Row: Call ID + Status Badge */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-mono text-xs font-bold text-indigo-700">
+                          {call.call_id || `#${call.id}`}
+                        </span>
+                        {call.service_request_number && (
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            SR: {call.service_request_number}
+                          </span>
+                        )}
+                      </div>
+                      <span
+                        className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider ${
+                          isCompleted
+                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                            : getStatusColor(call.status)
+                        }`}
+                      >
+                        {call.status ? call.status.replace(/_/g, ' ') : 'Pending'}
+                      </span>
+                    </div>
+
+                    {/* Customer & Category */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="space-y-0.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedCustomerId(call.customer_id)
+                            setIsCustomerHistoryOpen(true)
+                          }}
+                          className="font-semibold text-slate-900 hover:text-indigo-600 text-left text-sm flex items-center gap-1 group"
+                        >
+                          <span>{call.customer_name || 'Customer'}</span>
+                          <Eye className="h-3.5 w-3.5 text-indigo-500" />
+                        </button>
+                        <div className="flex items-center gap-2 text-xs text-slate-500 flex-wrap">
+                          {call.customer_mobile && (
+                            <a
+                              href={`tel:${call.customer_mobile}`}
+                              className="font-mono text-emerald-700 hover:underline flex items-center gap-1 font-medium"
+                            >
+                              <PhoneCall className="h-3 w-3" />
+                              {call.customer_mobile}
+                            </a>
+                          )}
+                          <span>•</span>
+                          <span>{call.customer_area || call.customer_city || 'Pune'}</span>
+                        </div>
+                      </div>
+
+                      <Badge variant="outline" className="text-[10px] text-slate-700 bg-slate-50 shrink-0">
+                        {call.service_category_name || 'General Appliance'}
+                      </Badge>
+                    </div>
+
+                    {/* Problem / Requirement */}
+                    {(call.requirement || call.problem_description) && (
+                      <p className="text-xs text-slate-600 bg-slate-50 p-2 rounded border border-slate-100">
+                        <span className="font-semibold text-slate-700">Issue: </span>
+                        {call.requirement || call.problem_description}
+                      </p>
+                    )}
+
+                    {/* Technician */}
+                    <div className="text-xs text-slate-600 flex items-center justify-between bg-slate-50/70 p-2 rounded">
+                      <span className="text-slate-500">Technician:</span>
+                      {call.technician_name ? (
+                        <div className="flex items-center gap-1.5 font-medium text-slate-900">
+                          <span>{call.technician_name}</span>
+                          {call.technician_mobile && (
+                            <a
+                              href={`tel:${call.technician_mobile}`}
+                              className="text-emerald-700 font-mono text-[11px] underline"
+                            >
+                              ({call.technician_mobile})
+                            </a>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-slate-400 italic">Unassigned</span>
+                      )}
+                    </div>
+
+                    {/* Work & Charges (if completed) */}
+                    {isCompleted && (
+                      <div className="bg-emerald-50/60 p-2.5 rounded-lg border border-emerald-200 text-xs space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-emerald-900 font-medium">Charges Taken:</span>
+                          <div className="flex items-center gap-1 font-bold text-emerald-800 text-sm">
+                            <IndianRupee className="h-3.5 w-3.5" />
+                            <span>₹{parseFloat(call.final_amount || 0).toLocaleString('en-IN')}</span>
+                            {call.payment_mode && (
+                              <Badge variant="outline" className="text-[9px] uppercase px-1 h-4 border-emerald-300 text-emerald-700 bg-white ml-1">
+                                {call.payment_mode}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                        {call.work_description && (
+                          <p className="text-[11px] text-slate-700">
+                            <strong>Work Done:</strong> {call.work_description}
+                          </p>
+                        )}
+                        {call.parts_replaced && (
+                          <p className="text-[11px] text-indigo-700">
+                            <strong>Parts:</strong> {call.parts_replaced}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Photo Thumbnail (if present) */}
+                    {photoUrl && (
+                      <div className="flex items-center gap-3 bg-slate-50 p-2 rounded border border-slate-200">
+                        <img
+                          src={getMediaUrl(photoUrl)}
+                          alt="Repaired Appliance"
+                          onClick={() => setPreviewPhoto(photoUrl)}
+                          className="h-12 w-12 object-cover rounded border border-slate-300 shrink-0 cursor-pointer"
+                        />
+                        <div className="text-xs">
+                          <div className="font-semibold text-emerald-800 flex items-center gap-1">
+                            <Camera className="h-3 w-3" /> Repaired Machine Photo
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setPreviewPhoto(photoUrl)}
+                            className="text-indigo-600 hover:underline text-[11px] font-medium"
+                          >
+                            Tap to View Enlarge →
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-2 pt-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedCustomerId(call.customer_id)
+                          setIsCustomerHistoryOpen(true)
+                        }}
+                        className="flex-1 text-xs h-8 text-indigo-700 border-indigo-200 bg-indigo-50/70 hover:bg-indigo-100 flex items-center justify-center gap-1.5 font-medium"
+                      >
+                        <Wrench className="h-3 w-3" />
+                        Customer History
+                      </Button>
+
+                      {!call.technician_name && (
+                        <Link
+                          to={`/technicians/find?callId=${call.id}&category=${call.service_category_id || ''}&area=${encodeURIComponent(call.customer_area || '')}&pincode=${encodeURIComponent(call.customer_pin_code || '')}&customerName=${encodeURIComponent(call.customer_name || '')}&requirement=${encodeURIComponent(call.requirement || '')}`}
+                          className="flex-1"
+                        >
+                          <Button
+                            size="sm"
+                            className="w-full text-xs h-8 bg-indigo-600 hover:bg-indigo-700 text-white"
+                          >
+                            Assign Tech
+                          </Button>
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                )
+              })
+            )}
+          </div>
+
+          {/* Desktop Table (>= md screens) */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full min-w-[760px] text-left text-sm">
               <thead className="bg-slate-50 text-slate-500 border-b border-slate-200 uppercase text-[11px] font-semibold tracking-wider">
                 <tr>
@@ -453,9 +651,9 @@ export function CallsPage() {
       {/* Machine Photo Lightbox Modal */}
       {previewPhoto && (
         <Dialog open={!!previewPhoto} onOpenChange={() => setPreviewPhoto(null)}>
-          <DialogContent className="max-w-2xl p-5 bg-white">
+          <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto p-4 sm:p-5 bg-white w-[95vw] sm:w-full">
             <DialogHeader>
-              <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <DialogTitle className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
                 <Camera className="h-4 w-4 text-indigo-600" />
                 One Photo of Repaired Machine / Appliance
               </DialogTitle>
@@ -465,19 +663,19 @@ export function CallsPage() {
                 <img
                   src={getMediaUrl(previewPhoto)}
                   alt="Repaired Appliance"
-                  className="max-h-[65vh] w-auto mx-auto rounded shadow-sm object-contain"
+                  className="max-h-[55vh] sm:max-h-[65vh] w-auto mx-auto rounded shadow-sm object-contain"
                 />
               </div>
-              <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-500 pt-1">
                 <span>Verified technician on-site capture</span>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-end gap-2">
                   <a
                     href={getMediaUrl(previewPhoto)}
                     target="_blank"
                     rel="noreferrer"
                     className="text-indigo-600 hover:underline flex items-center gap-1 font-medium text-xs mr-2"
                   >
-                    Open in New Tab <ExternalLink className="h-3 w-3" />
+                    Open Full Image <ExternalLink className="h-3 w-3" />
                   </a>
                   <Button size="sm" variant="outline" onClick={() => setPreviewPhoto(null)}>
                     Close

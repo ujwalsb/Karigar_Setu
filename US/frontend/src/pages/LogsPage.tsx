@@ -390,7 +390,86 @@ export function LogsPage() {
       {/* Activity Logs Table */}
       <Card className="border-slate-200 shadow-xs">
         <CardContent className="p-0">
-          <div className="overflow-x-auto touch-scroll">
+          {/* Mobile Card List (< md screens) */}
+          <div className="md:hidden divide-y divide-slate-100">
+            {loading ? (
+              <div className="py-12 text-center text-slate-400">
+                <div className="h-6 w-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                Loading activity audit logs...
+              </div>
+            ) : logs.length === 0 ? (
+              <div className="p-6 text-center text-slate-400">
+                No activity records found.
+              </div>
+            ) : (
+              logs.map((log) => (
+                <div key={log.id} className="p-4 space-y-2.5 bg-white">
+                  {/* Top Bar: User & Timestamp */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className="h-8 w-8 rounded-full bg-slate-100 text-slate-700 font-bold flex items-center justify-center text-xs shrink-0 border border-slate-200">
+                        {(log.user_name || 'System')
+                          .split(' ')
+                          .map((w) => w[0])
+                          .slice(0, 2)
+                          .join('')}
+                      </div>
+                      <div>
+                        <div className="font-semibold text-slate-900 text-xs flex items-center gap-1.5">
+                          {log.user_name || 'System / Automated'}
+                          {log.user_role && (
+                            <Badge
+                              variant="outline"
+                              className={`text-[9px] uppercase px-1 py-0 ${
+                                log.user_role === 'admin'
+                                  ? 'border-indigo-300 text-indigo-700 bg-indigo-50'
+                                  : 'border-slate-200 text-slate-600'
+                              }`}
+                            >
+                              {log.user_role}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-[10px] text-slate-400">
+                          {formatDate(log.created_at)} • {new Date(log.created_at).toLocaleTimeString()}
+                        </div>
+                      </div>
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedLog(log)}
+                      className="h-7 text-xs text-indigo-700 border-indigo-200 bg-indigo-50/70 hover:bg-indigo-100 px-2 flex items-center gap-1 shrink-0"
+                    >
+                      <Eye className="h-3 w-3" />
+                      Payload
+                    </Button>
+                  </div>
+
+                  {/* Action Event & Entity */}
+                  <div className="flex items-center justify-between text-xs bg-slate-50 p-2 rounded border border-slate-100 flex-wrap gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-mono text-[11px] font-semibold text-slate-800">
+                        {log.action}
+                      </span>
+                      {log.entity_type && (
+                        <span className="text-[10px] text-slate-500">
+                          ({log.entity_type}{log.entity_id ? ` #${log.entity_id}` : ''})
+                        </span>
+                      )}
+                    </div>
+                    <span className="font-mono text-[10px] text-slate-400">
+                      IP: {log.ip_address || 'Localhost'}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Desktop Table (>= md screens) */}
+          <div className="hidden md:block overflow-x-auto touch-scroll">
             <table className="w-full min-w-[760px] text-left text-sm">
               <thead className="bg-slate-50 text-slate-500 border-b border-slate-200 uppercase text-[11px] font-semibold tracking-wider">
                 <tr>
@@ -545,7 +624,7 @@ export function LogsPage() {
       {/* EVENT DETAILS INSPECTOR DIALOG */}
       {selectedLog && (
         <Dialog open={!!selectedLog} onOpenChange={() => setSelectedLog(null)}>
-          <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto p-5 bg-white">
+          <DialogContent className="max-w-xl max-h-[92vh] overflow-y-auto p-4 sm:p-5 bg-white w-[95vw] sm:w-full">
             <DialogHeader className="pb-3 border-b border-slate-100">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">

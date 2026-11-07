@@ -545,7 +545,7 @@ export function FindTechnicianPage() {
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {results.map((tech) => (
               <Card key={tech.id} className="border-slate-200 hover:shadow-md transition-shadow bg-white flex flex-col justify-between">
                 <div>
@@ -659,7 +659,7 @@ export function FindTechnicianPage() {
                 </div>
 
                 <div className="p-4 pt-0">
-                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
                     <a
                       href={`tel:${tech.mobile}`}
                       className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1 font-medium"

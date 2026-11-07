@@ -177,7 +177,117 @@ export function CustomersPage() {
 
       <Card className="border-slate-200">
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          {/* Mobile Card List (< md screens) */}
+          <div className="md:hidden divide-y divide-slate-100">
+            {loading ? (
+              <div className="py-8 text-center text-slate-400">
+                <div className="h-6 w-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                Loading customer database...
+              </div>
+            ) : customers.length === 0 ? (
+              <div className="p-6 text-center text-slate-400">
+                No customers found. Customers are registered automatically when logging a call.
+              </div>
+            ) : (
+              customers.map((c) => (
+                <div key={c.id} className="p-4 space-y-3 bg-white">
+                  {/* Top Bar: Name & Registered Date */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedCustomerId(c.id)
+                          setIsServiceDetailsOpen(true)
+                        }}
+                        className="font-bold text-slate-900 hover:text-indigo-600 text-left text-sm flex items-center gap-1 group"
+                      >
+                        <span>{c.full_name || c.name}</span>
+                        <span className="text-[10px] text-indigo-500 font-normal">#{c.id}</span>
+                      </button>
+                      <div className="text-[11px] text-slate-400">
+                        Registered: {formatDate(c.created_at || c.createdAt)}
+                      </div>
+                    </div>
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setSelectedCustomerId(c.id)
+                        setIsServiceDetailsOpen(true)
+                      }}
+                      className="h-7 px-2 text-xs flex items-center gap-1 text-indigo-700 border-indigo-200 bg-indigo-50/70 hover:bg-indigo-100 font-medium shrink-0"
+                    >
+                      <Wrench className="h-3 w-3" />
+                      History
+                    </Button>
+                  </div>
+
+                  {/* Contact Numbers */}
+                  <div className="flex items-center justify-between text-xs text-slate-600 bg-slate-50 p-2.5 rounded-lg border border-slate-100 flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                      <a
+                        href={`tel:${c.mobile}`}
+                        className="inline-flex items-center gap-1 text-emerald-800 font-mono font-semibold hover:underline"
+                      >
+                        <Phone className="h-3 w-3 text-emerald-600" />
+                        {c.mobile}
+                      </a>
+                      {(c.alternate_mobile || c.alt_mobile) && (
+                        <span className="text-[11px] text-slate-400 font-mono">
+                          (Alt: {c.alternate_mobile || c.alt_mobile})
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1 text-slate-600 font-medium">
+                      <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                      <span>{c.area || 'Pune'}</span>
+                      {(c.pin_code || c.pinCode) && (
+                        <span className="text-slate-400 font-mono text-[11px]">({c.pin_code || c.pinCode})</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Address if present */}
+                  {c.address && (
+                    <p className="text-[11px] text-slate-500">
+                      <strong>Address: </strong>{c.address}
+                    </p>
+                  )}
+
+                  {/* Actions Toolbar */}
+                  <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-100">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openEditModal(c)}
+                      className="flex-1 text-xs h-7 px-2 flex items-center justify-center gap-1 text-slate-700 hover:text-indigo-600"
+                    >
+                      <Pencil className="h-3 w-3" />
+                      Edit Customer
+                    </Button>
+
+                    {isAdmin && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setDeletingCustomer(c)}
+                        className="text-xs h-7 px-2.5 flex items-center gap-1 text-rose-600 border-rose-200 hover:bg-rose-50"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        Delete
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Desktop Table (>= md screens) */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full min-w-[750px] text-left text-sm">
               <thead className="bg-slate-50 text-slate-500 border-b border-slate-200 uppercase text-[11px] font-semibold tracking-wider">
                 <tr>

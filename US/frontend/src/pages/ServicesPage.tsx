@@ -104,19 +104,19 @@ export function ServicesPage() {
           </p>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
           {user?.role === 'admin' && (
             <Button
               onClick={() => setShowAddModal(!showAddModal)}
               variant="outline"
-              className="border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+              className="flex-1 sm:flex-none border-indigo-200 text-indigo-700 hover:bg-indigo-50 text-xs sm:text-sm h-8 sm:h-9"
             >
               <Plus className="h-4 w-4 mr-1.5" />
               Add Custom Service
             </Button>
           )}
-          <Link to="/calls/new">
-            <Button className="bg-indigo-600 hover:bg-indigo-700 text-white">
+          <Link to="/calls/new" className="flex-1 sm:flex-none">
+            <Button className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm h-8 sm:h-9">
               <PhoneCall className="h-4 w-4 mr-1.5" />
               Register New Call
             </Button>

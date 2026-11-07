@@ -464,8 +464,133 @@ export function UsersPage() {
           </div>
         </div>
 
-        {/* Users Table */}
-        <div className="overflow-x-auto">
+        {/* Mobile Card List (< md screens) */}
+        <div className="md:hidden divide-y divide-slate-100">
+          {loading ? (
+            <div className="py-12 text-center text-slate-400">
+              <div className="h-6 w-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+              <span>Loading staff accounts...</span>
+            </div>
+          ) : filteredUsers.length === 0 ? (
+            <div className="p-6 text-center text-slate-400">
+              No staff members found.
+            </div>
+          ) : (
+            filteredUsers.map((u) => {
+              const isActive = u.isActive !== false && u.is_active !== false
+              const isSelf = u.id === currentUser?.id
+
+              return (
+                <div key={u.id} className="p-4 space-y-3 bg-white">
+                  {/* Top Bar: Avatar, Name, Badges */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-3">
+                      <div className={`h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${u.role === 'admin'
+                          ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
+                          : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                        }`}>
+                        {(u.name || 'U').charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                          {u.name}
+                          {isSelf && (
+                            <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
+                              You
+                            </span>
+                          )}
+                          <span className="text-[10px] text-slate-400 font-mono">#{u.id}</span>
+                        </div>
+                        <div className="text-[11px] text-slate-400">
+                          {u.role === 'admin' ? 'Administrator' : 'Support Agent'}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col items-end gap-1">
+                      {u.role === 'admin' ? (
+                        <Badge className="bg-indigo-100 text-indigo-800 border-indigo-200 text-[10px] font-semibold flex items-center gap-1">
+                          <Shield className="h-2.5 w-2.5 text-indigo-600" />
+                          Admin
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[10px] font-semibold flex items-center gap-1">
+                          <Headphones className="h-2.5 w-2.5 text-emerald-600" />
+                          Support
+                        </Badge>
+                      )}
+
+                      {isActive ? (
+                        <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[9px] font-semibold">
+                          Active
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-rose-50 text-rose-700 border-rose-200 text-[9px] font-semibold">
+                          Inactive
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Contact Info */}
+                  <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-xs space-y-1">
+                    <a href={`mailto:${u.email}`} className="font-mono text-slate-700 hover:text-indigo-600 flex items-center gap-1.5">
+                      <Mail className="h-3 w-3 text-slate-400 shrink-0" />
+                      {u.email}
+                    </a>
+                    {u.phone && (
+                      <a href={`tel:${u.phone}`} className="font-mono text-emerald-700 hover:underline flex items-center gap-1.5">
+                        <Phone className="h-3 w-3 text-emerald-600 shrink-0" />
+                        {u.phone}
+                      </a>
+                    )}
+                  </div>
+
+                  {/* Actions Toolbar */}
+                  <div className="flex items-center gap-2 pt-1 border-t border-slate-100">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleToggleActive(u)}
+                      disabled={isSelf}
+                      className={`text-xs h-8 px-2.5 flex items-center gap-1 ${isActive
+                          ? 'text-amber-700 border-amber-200 hover:bg-amber-50'
+                          : 'text-emerald-700 border-emerald-200 hover:bg-emerald-50'
+                        }`}
+                    >
+                      <Power className="h-3 w-3" />
+                      {isActive ? 'Deactivate' : 'Activate'}
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleOpenEditModal(u)}
+                      className="flex-1 text-xs h-8 text-indigo-700 border-indigo-200 bg-indigo-50/70 hover:bg-indigo-100 flex items-center justify-center gap-1 font-medium"
+                    >
+                      <Pencil className="h-3 w-3" />
+                      Edit Profile
+                    </Button>
+
+                    {!isSelf && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleOpenDeleteModal(u)}
+                        className="text-xs h-8 px-2.5 text-rose-600 border-rose-200 hover:bg-rose-50 flex items-center gap-1"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )
+            })
+          )}
+        </div>
+
+        {/* Desktop Table (>= md screens) */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-[750px]">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-100/60 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
@@ -649,7 +774,7 @@ export function UsersPage() {
       {/* 1. ADD / CREATE USER MODAL                                                */}
       {/* ========================================================================= */}
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
-        <DialogContent className="max-w-md p-5">
+        <DialogContent className="max-w-md max-h-[92vh] overflow-y-auto p-4 sm:p-5 bg-white w-[95vw] sm:w-full">
           <DialogHeader>
             <DialogTitle className="text-base sm:text-lg flex items-center gap-2">
               <Plus className="h-4 w-4 text-indigo-600" />
@@ -750,7 +875,7 @@ export function UsersPage() {
       {/* 2. EDIT / UPDATE USER MODAL                                               */}
       {/* ========================================================================= */}
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-        <DialogContent className="max-w-md p-5">
+        <DialogContent className="max-w-md max-h-[92vh] overflow-y-auto p-4 sm:p-5 bg-white w-[95vw] sm:w-full">
           <DialogHeader>
             <DialogTitle className="text-base sm:text-lg flex items-center gap-2">
               <Pencil className="h-4 w-4 text-indigo-600" />
@@ -869,7 +994,7 @@ export function UsersPage() {
       {/* 3. DELETE CONFIRMATION DIALOG                                             */}
       {/* ========================================================================= */}
       <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
-        <DialogContent className="max-w-md p-5">
+        <DialogContent className="max-w-md max-h-[92vh] overflow-y-auto p-4 sm:p-5 bg-white w-[95vw] sm:w-full">
           <DialogHeader>
             <div className="h-10 w-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mb-2 mx-auto sm:mx-0">
               <Trash2 className="h-5 w-5" />
