@@ -548,8 +548,8 @@ export function NewCallPage() {
                       type="button"
                       onClick={() => handleQuickSelect(c)}
                       className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${isSelected
-                          ? 'bg-indigo-600 text-white shadow-xs ring-2 ring-indigo-300'
-                          : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                        ? 'bg-indigo-600 text-white shadow-xs ring-2 ring-indigo-300'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                         }`}
                     >
                       <Icon className="h-3.5 w-3.5" />

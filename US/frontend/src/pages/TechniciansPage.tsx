@@ -1054,13 +1054,12 @@ export function TechniciansPage() {
 
                         <Badge
                           variant="outline"
-                          className={`text-[10px] font-medium capitalize ${
-                            t.availability === 'available'
+                          className={`text-[10px] font-medium capitalize ${t.availability === 'available'
                               ? 'border-emerald-300 text-emerald-700 bg-emerald-50'
                               : t.availability === 'busy'
                                 ? 'border-amber-300 text-amber-700 bg-amber-50'
                                 : 'border-slate-300 text-slate-600 bg-slate-50'
-                          }`}
+                            }`}
                         >
                           {t.availability || 'available'}
                         </Badge>
@@ -1069,11 +1068,10 @@ export function TechniciansPage() {
                       <button
                         type="button"
                         onClick={() => openDocsModal(t)}
-                        className={`inline-flex items-center gap-1 text-[10px] rounded px-2 py-0.5 font-medium border ${
-                          docsList.length > 0
+                        className={`inline-flex items-center gap-1 text-[10px] rounded px-2 py-0.5 font-medium border ${docsList.length > 0
                             ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                             : 'bg-amber-50 text-amber-800 border-amber-200'
-                        }`}
+                          }`}
                       >
                         <ShieldCheck className="h-3 w-3 text-emerald-600" />
                         <span>{docsList.length > 0 ? `${docsList.length} ID Docs` : 'Upload ID'}</span>
