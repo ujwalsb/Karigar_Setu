@@ -31,9 +31,23 @@ const { getBrandingFromDb } = require('./utils/branding');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Security headers
+// Security headers (allow blob:/data: previews for technician documents & ID card PNG/print popups)
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrcAttr: ["'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https:"],
+      fontSrc: ["'self'", "data:", "https:"],
+      imgSrc: ["'self'", "data:", "blob:", "https:", "http:"],
+      connectSrc: ["'self'", "https:", "http:", "data:", "blob:"],
+      frameSrc: ["'self'", "blob:", "data:"],
+      objectSrc: ["'self'", "blob:", "data:"],
+      upgradeInsecureRequests: null
+    }
+  }
 }));
 
 // Static files (uploads: technician photos, government IDs)
@@ -47,7 +61,13 @@ if (rootUploadsDir !== backendUploadsDir && fs.existsSync(rootUploadsDir)) {
 // Serve Frontend static assets if built into public/
 const publicDir = path.join(__dirname, '../public');
 if (fs.existsSync(publicDir)) {
-  app.use(express.static(publicDir));
+  app.use(express.static(publicDir, {
+    setHeaders: (res, filePath) => {
+      if (path.basename(filePath) === 'index.html') {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      }
+    }
+  }));
 }
 
 // CORS
@@ -141,6 +161,7 @@ if (fs.existsSync(indexHtmlPath)) {
     if (req.originalUrl.startsWith('/api') || req.originalUrl.startsWith('/uploads')) {
       return next();
     }
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.sendFile(indexHtmlPath);
   });
 } else {
