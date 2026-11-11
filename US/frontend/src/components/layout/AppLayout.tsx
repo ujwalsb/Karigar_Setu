@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Link, useLocation, Outlet } from 'react-router-dom'
 import { useAuth } from '@/store/authStore'
 import { useSettings } from '@/store/settingsStore'
+import { resolveAssetUrl, getResolvedCompanyName, getBrandInitials } from '@/lib/utils'
 import {
   LayoutDashboard,
   PhoneCall,
@@ -28,11 +29,40 @@ export function AppLayout() {
   const { settings } = useSettings()
   const location = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [logoError, setLogoError] = useState(false)
 
   // Auto-close mobile drawer on route navigation
   useEffect(() => {
     setMobileMenuOpen(false)
   }, [location.pathname])
+
+  useEffect(() => {
+    setLogoError(false)
+  }, [settings.company_logo_url])
+
+  const brandLogoUrl = !logoError ? resolveAssetUrl(settings.company_logo_url) : ''
+  const companyName = getResolvedCompanyName(settings)
+  const brandInitials = getBrandInitials(companyName)
+
+  const renderBrandMark = (sizeClass: string, textClass: string) =>
+    brandLogoUrl ? (
+      <div
+        className={`${sizeClass} bg-white flex items-center justify-center overflow-hidden border border-slate-700/40 shrink-0 shadow`}
+      >
+        <img
+          src={brandLogoUrl}
+          alt={companyName}
+          onError={() => setLogoError(true)}
+          className="h-full w-full object-contain p-0.5"
+        />
+      </div>
+    ) : (
+      <div
+        className={`${sizeClass} bg-indigo-600 flex items-center justify-center font-bold text-white ${textClass} shrink-0 shadow`}
+      >
+        {brandInitials}
+      </div>
+    )
 
   const navItems = [
     { label: 'Dashboard', path: '/', icon: LayoutDashboard },
@@ -45,11 +75,11 @@ export function AppLayout() {
     { label: 'Analytics & Reports', path: '/analytics', icon: BarChart3 },
     ...(user?.role === 'admin'
       ? [
-          { label: 'Technician Plans & Billing', path: '/technician-plans', icon: Receipt },
-          { label: 'Staff Management', path: '/users', icon: ShieldAlert },
-          { label: 'Activity & Auth Logs', path: '/logs', icon: Activity },
-          { label: 'Platform Settings', path: '/settings', icon: Settings },
-        ]
+        { label: 'Technician Plans & Billing', path: '/technician-plans', icon: Receipt },
+        { label: 'Staff Management', path: '/users', icon: ShieldAlert },
+        { label: 'Activity & Auth Logs', path: '/logs', icon: Activity },
+        { label: 'Platform Settings', path: '/settings', icon: Settings },
+      ]
       : []),
   ]
 
@@ -70,12 +100,10 @@ export function AppLayout() {
       <aside className="hidden lg:flex w-64 bg-slate-900 text-slate-200 flex-col shrink-0 shadow-lg">
         {/* Brand */}
         <div className="h-16 flex items-center gap-3 px-6 border-b border-slate-800 bg-slate-950">
-          <div className="h-9 w-9 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-white text-lg shadow-md">
-            KS
-          </div>
+          {renderBrandMark('h-9 w-9 rounded-lg', 'text-lg shadow-md')}
           <div>
             <h1 className="font-semibold text-white tracking-wide text-sm truncate max-w-[170px]">
-              {settings.platform_name || 'Karigar Setu'}
+              {companyName}
             </h1>
             <p className="text-[11px] text-slate-400 truncate max-w-[170px]">
               {settings.tagline || 'Technician & Service Hub'}
@@ -97,8 +125,8 @@ export function AppLayout() {
                 key={item.path}
                 to={item.path}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                   }`}
               >
                 <Icon className="h-4 w-4 shrink-0" />
@@ -153,12 +181,10 @@ export function AppLayout() {
         {/* Drawer Header with Close Button */}
         <div className="h-16 flex items-center justify-between px-5 border-b border-slate-800 bg-slate-950">
           <div className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-white text-base shadow">
-              KS
-            </div>
+            {renderBrandMark('h-8 w-8 rounded-lg', 'text-base')}
             <div>
               <h2 className="font-semibold text-white text-sm truncate max-w-[170px]">
-                {settings.platform_name || 'Karigar Setu'}
+                {companyName}
               </h2>
               <p className="text-[10px] text-slate-400 truncate max-w-[170px]">
                 {settings.tagline || 'Technician & Service Hub'}
@@ -190,8 +216,8 @@ export function AppLayout() {
                 to={item.path}
                 onClick={() => setMobileMenuOpen(false)}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                   }`}
               >
                 <Icon className="h-4 w-4 shrink-0" />
@@ -248,10 +274,10 @@ export function AppLayout() {
 
             <div className="min-w-0">
               <h2 className="text-sm sm:text-base lg:text-lg font-bold text-slate-900 truncate">
-                <span className="hidden sm:inline">Service Management & Operations</span>
+                <span className="hidden sm:inline">{companyName} • Service Operations</span>
                 <span className="sm:hidden flex items-center gap-1.5">
-                  <span className="h-6 w-6 rounded bg-indigo-600 text-white font-bold text-xs flex items-center justify-center">KS</span>
-                  {settings.platform_name || 'Karigar Setu'}
+                  {renderBrandMark('h-6 w-6 rounded', 'text-xs')}
+                  {companyName}
                 </span>
               </h2>
             </div>
@@ -264,8 +290,8 @@ export function AppLayout() {
                 size="sm"
                 variant="outline"
                 className={`h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm font-medium transition-colors shadow-2xs ${location.pathname.startsWith('/service-requests')
-                    ? 'bg-indigo-50 border-indigo-400 text-indigo-700 ring-1 ring-indigo-400/20'
-                    : 'border-slate-300 text-slate-700 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-300'
+                  ? 'bg-indigo-50 border-indigo-400 text-indigo-700 ring-1 ring-indigo-400/20'
+                  : 'border-slate-300 text-slate-700 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-300'
                   }`}
               >
                 <ClipboardList className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-1.5 text-indigo-600 shrink-0" />
@@ -308,8 +334,8 @@ export function AppLayout() {
                 key={item.path}
                 to={item.path}
                 className={`flex flex-col items-center justify-center flex-1 h-full py-1 text-[10px] font-medium transition-colors ${isActive
-                    ? 'text-indigo-600 font-bold'
-                    : 'text-slate-500 hover:text-slate-900'
+                  ? 'text-indigo-600 font-bold'
+                  : 'text-slate-500 hover:text-slate-900'
                   }`}
               >
                 <Icon className={`h-4 w-4 mb-0.5 ${isActive ? 'text-indigo-600' : 'text-slate-400'}`} />

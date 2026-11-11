@@ -1,7 +1,26 @@
 'use strict';
 
+const fs = require('fs');
+const path = require('path');
 const db = require('../config/database');
 const { logActivity } = require('../middleware/auth');
+const { BRANDING_UPLOAD_DIR } = require('../config/logoMulter');
+const { DEFAULT_BRAND_NAME, resolveCompanyName } = require('../utils/branding');
+
+const PUBLIC_SETTING_KEYS = [
+  'theme',
+  'primary_color',
+  'compact_mode',
+  'sidebar_style',
+  'platform_name',
+  'tagline',
+  'company_name',
+  'company_logo_url',
+  'support_phone',
+  'support_email',
+  'business_address',
+  'currency_symbol'
+];
 
 const DEFAULT_SETTINGS = {
   // Appearance & Theme
@@ -14,6 +33,7 @@ const DEFAULT_SETTINGS = {
   platform_name: 'Karigar Setu',
   tagline: 'Connecting Skills & Needs - Appliance Service Platform',
   company_name: 'Karigar Setu',
+  company_logo_url: '',
   support_phone: '+91 8805224580',
   support_email: 'support@karigarsetu.local',
   business_address: 'Pune, Maharashtra 411001',
@@ -78,15 +98,62 @@ Please submit this immediately after completing the service. Thank you!`,
   allow_staff_delete_records: 'false'
 };
 
+async function getAllSettingsMap() {
+  const [rows] = await db.query('SELECT setting_key, setting_value FROM platform_settings');
+  const settings = { ...DEFAULT_SETTINGS };
+  for (const row of rows) {
+    settings[row.setting_key] = row.setting_value;
+  }
+  return settings;
+}
+
+async function upsertSetting(key, value, category = 'general') {
+  const stringVal = typeof value === 'object' ? JSON.stringify(value) : String(value ?? '');
+  await db.query(
+    `INSERT INTO platform_settings (setting_key, setting_value, category)
+     VALUES (?, ?, ?)
+     ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_at = NOW()`,
+    [key, stringVal, category]
+  );
+}
+
+function removeLocalLogoFile(logoUrl) {
+  if (!logoUrl || typeof logoUrl !== 'string' || !logoUrl.startsWith('/uploads/branding/')) {
+    return;
+  }
+  const safeFileName = path.basename(logoUrl);
+  const fullPath = path.join(BRANDING_UPLOAD_DIR, safeFileName);
+  if (fs.existsSync(fullPath)) {
+    try {
+      fs.unlinkSync(fullPath);
+    } catch (unlinkErr) {
+      console.warn('Could not delete old company logo:', unlinkErr.message);
+    }
+  }
+}
+
+async function getPublicSettings(req, res, next) {
+  try {
+    const allSettings = await getAllSettingsMap();
+    const publicSettings = {};
+    for (const key of PUBLIC_SETTING_KEYS) {
+      if (allSettings[key] !== undefined) {
+        publicSettings[key] = allSettings[key];
+      }
+    }
+    publicSettings.resolved_company_name = resolveCompanyName(allSettings);
+    return res.json({
+      success: true,
+      data: publicSettings
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function getSettings(req, res, next) {
   try {
-    const [rows] = await db.query('SELECT setting_key, setting_value, category, updated_at FROM platform_settings');
-    const settings = { ...DEFAULT_SETTINGS };
-
-    for (const row of rows) {
-      settings[row.setting_key] = row.setting_value;
-    }
-
+    const settings = await getAllSettingsMap();
     return res.json({
       success: true,
       data: settings
@@ -98,8 +165,8 @@ async function getSettings(req, res, next) {
 
 async function updateSettings(req, res, next) {
   try {
-    const updates = req.body;
-    if (!updates || typeof updates !== 'object') {
+    const updates = { ...(req.body || {}) };
+    if (!req.body || typeof req.body !== 'object') {
       return res.status(400).json({ success: false, message: 'Invalid settings payload.' });
     }
 
@@ -108,14 +175,24 @@ async function updateSettings(req, res, next) {
       return res.status(400).json({ success: false, message: 'No settings provided to update.' });
     }
 
-    for (const [key, val] of entries) {
-      const stringVal = typeof val === 'object' ? JSON.stringify(val) : String(val ?? '');
-      await db.query(
-        `INSERT INTO platform_settings (setting_key, setting_value)
-         VALUES (?, ?)
-         ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_at = NOW()`,
-        [key, stringVal]
-      );
+    const currentSettings = await getAllSettingsMap();
+    if (updates.company_name !== undefined) {
+      const nextCompany = String(updates.company_name || '').trim();
+      const prevCompany = String(currentSettings.company_name || '').trim();
+      const prevPlatform = String(currentSettings.platform_name || '').trim();
+      const sentPlatform = updates.platform_name !== undefined ? String(updates.platform_name || '').trim() : prevPlatform;
+      if (
+        nextCompany &&
+        (sentPlatform === '' ||
+          sentPlatform === DEFAULT_BRAND_NAME ||
+          (sentPlatform === prevPlatform && (prevPlatform === prevCompany || prevPlatform === DEFAULT_BRAND_NAME)))
+      ) {
+        updates.platform_name = nextCompany;
+      }
+    }
+
+    for (const [key, val] of Object.entries(updates)) {
+      await upsertSetting(key, val);
     }
 
     if (req.user) {
@@ -129,12 +206,7 @@ async function updateSettings(req, res, next) {
       );
     }
 
-    // Return the updated settings map
-    const [rows] = await db.query('SELECT setting_key, setting_value FROM platform_settings');
-    const allSettings = { ...DEFAULT_SETTINGS };
-    for (const row of rows) {
-      allSettings[row.setting_key] = row.setting_value;
-    }
+    const allSettings = await getAllSettingsMap();
 
     return res.json({
       success: true,
@@ -146,8 +218,85 @@ async function updateSettings(req, res, next) {
   }
 }
 
+async function uploadLogo(req, res, next) {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'Please choose a company logo image file.' });
+    }
+
+    const currentSettings = await getAllSettingsMap();
+    const previousLogoUrl = currentSettings.company_logo_url;
+    const relativeUrl = `/uploads/branding/${req.file.filename}`;
+
+    await upsertSetting('company_logo_url', relativeUrl, 'branding');
+
+    if (previousLogoUrl && previousLogoUrl !== relativeUrl) {
+      removeLocalLogoFile(previousLogoUrl);
+    }
+
+    if (req.user) {
+      await logActivity(
+        req.user.id,
+        'UPLOAD_COMPANY_LOGO',
+        'system',
+        null,
+        { company_logo_url: relativeUrl, fileName: req.file.originalname },
+        req.ip
+      );
+    }
+
+    const allSettings = await getAllSettingsMap();
+    return res.status(201).json({
+      success: true,
+      message: 'Company logo uploaded successfully.',
+      data: {
+        company_logo_url: relativeUrl,
+        settings: allSettings
+      }
+    });
+  } catch (err) {
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    next(err);
+  }
+}
+
+async function deleteLogo(req, res, next) {
+  try {
+    const currentSettings = await getAllSettingsMap();
+    removeLocalLogoFile(currentSettings.company_logo_url);
+    await upsertSetting('company_logo_url', '', 'branding');
+
+    if (req.user) {
+      await logActivity(
+        req.user.id,
+        'DELETE_COMPANY_LOGO',
+        'system',
+        null,
+        {},
+        req.ip
+      );
+    }
+
+    const allSettings = await getAllSettingsMap();
+    return res.json({
+      success: true,
+      message: 'Company logo removed.',
+      data: {
+        company_logo_url: '',
+        settings: allSettings
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function resetSettings(req, res, next) {
   try {
+    const currentSettings = await getAllSettingsMap();
+    removeLocalLogoFile(currentSettings.company_logo_url);
     await db.query('DELETE FROM platform_settings');
 
     if (req.user) {
@@ -172,8 +321,11 @@ async function resetSettings(req, res, next) {
 }
 
 module.exports = {
+  getPublicSettings,
   getSettings,
   updateSettings,
+  uploadLogo,
+  deleteLogo,
   resetSettings
 };
 

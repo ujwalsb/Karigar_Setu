@@ -4,6 +4,7 @@ const db = require('../config/database');
 const serviceRequestModel = require('../models/serviceRequestModel');
 const callModel = require('../models/callModel');
 const { logActivity } = require('../middleware/auth');
+const { resolveCompanyName } = require('../utils/branding');
 
 async function getAllRequests(req, res, next) {
   try {
@@ -253,25 +254,28 @@ async function getSubmissionLink(req, res, next) {
     const origin = req.headers.origin || process.env.FRONTEND_URL || 'http://localhost:5173';
     const submissionUrl = `${origin}/job-report/${token}`;
 
-    // Fetch custom template from platform_settings if present
-    let platformName = 'Karigar Setu';
+    // Fetch custom branding & template from platform_settings if present
+    let companyName = '';
+    let platformName = '';
     let template = null;
     try {
       const [settingRows] = await db.query(
         `SELECT setting_key, setting_value FROM platform_settings 
-         WHERE setting_key IN ('platform_name', 'report_link_whatsapp_template')`
+         WHERE setting_key IN ('company_name', 'platform_name', 'report_link_whatsapp_template')`
       );
       for (const row of settingRows) {
+        if (row.setting_key === 'company_name' && row.setting_value) companyName = row.setting_value;
         if (row.setting_key === 'platform_name' && row.setting_value) platformName = row.setting_value;
         if (row.setting_key === 'report_link_whatsapp_template' && row.setting_value) template = row.setting_value;
       }
-    } catch (e) {}
+    } catch (e) { }
 
+    const resolvedBrandName = resolveCompanyName({ company_name: companyName, platform_name: platformName });
     let defaultMessage = '';
     const reqItems = '• Enter total amount collected from customer\n• Mention parts replaced (if any)\n• Upload 1 photo of the repaired machine / appliance';
     if (template && template.trim()) {
       defaultMessage = template
-        .replace(/\{\{\s*platform_name\s*\}\}/gi, platformName)
+        .replace(/\{\{\s*(platform_name|company_name)\s*\}\}/gi, resolvedBrandName)
         .replace(/\{\{\s*technician_name\s*\}\}/gi, target.technician_name || 'Technician')
         .replace(/\{\{\s*job_id\s*\}\}/gi, target.request_id || target.id)
         .replace(/\{\{\s*customer_name\s*\}\}/gi, `${target.customer_name || 'Customer'} (${target.customer_area || 'Pune'})`)
@@ -280,7 +284,7 @@ async function getSubmissionLink(req, res, next) {
         .replace(/\{\{\s*required_items\s*\}\}/gi, reqItems)
         .trim();
     } else {
-      defaultMessage = `🛠️ *${platformName.toUpperCase()} - WORK COMPLETION REPORT* 🛠️
+      defaultMessage = `🛠️ *${resolvedBrandName.toUpperCase()} - WORK COMPLETION REPORT* 🛠️
 ━━━━━━━━━━━━━━━━━━━━
 Hi *${target.technician_name || 'Technician'}*,
 Please submit your work report for Job *#${target.request_id || target.id}*:

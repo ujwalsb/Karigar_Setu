@@ -7,21 +7,26 @@ async function createTechnician(data) {
     full_name, mobile, alt_mobile, alternate_mobile, email, photo_url, address, area, city,
     state, pin_code, latitude, longitude,
     experience_years, rating, total_jobs,
-    availability, verification_status, status, consent_given, created_by
+    availability, verification_status, status, consent_given,
+    designation, badge_code, id_card_valid_until, blood_group, id_card_theme,
+    created_by
   } = data;
   const alt = alternate_mobile || alt_mobile || null;
   const [result] = await db.query(
     `INSERT INTO technicians
      (full_name, mobile, alternate_mobile, email, photo_url, address, area, city, state,
       pin_code, latitude, longitude, experience_years, rating, total_jobs,
-      availability, verification_status, status, consent_given, created_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      availability, verification_status, status, consent_given,
+      designation, badge_code, id_card_valid_until, blood_group, id_card_theme, created_by)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [full_name, mobile, alt, email || null, photo_url || null, address || null,
       area || null, city || 'Pune', state || 'Maharashtra',
       pin_code || null, latitude || null, longitude || null,
       experience_years || 0, rating || 4.5, total_jobs || 0,
       availability || 'available', verification_status || 'pending', status || 'active',
       consent_given ? 1 : 0,
+      designation || null, badge_code || null, id_card_valid_until || null,
+      blood_group || null, id_card_theme || null,
       created_by || null]
   );
   return result.insertId;
@@ -98,10 +103,11 @@ async function getAllTechnicians({ page = 1, limit = 20, search = '', serviceCat
   const where = conditions.join(' AND ');
   const [rows] = await db.query(
     `SELECT t.id, t.full_name, t.mobile, t.alternate_mobile, t.email,
-            t.photo_url,
+            t.photo_url, t.address,
             t.area, t.city, t.state, t.pin_code,
             t.experience_years, t.rating, t.total_jobs, t.availability,
             t.verification_status, t.status, t.created_at,
+            t.designation, t.badge_code, t.id_card_valid_until, t.blood_group, t.id_card_theme,
             t.plan_type, t.commission_rate_type, t.commission_rate,
             t.monthly_fee, t.subscription_status, t.subscription_start_date, t.subscription_end_date
      FROM technicians t WHERE ${where}
@@ -167,15 +173,22 @@ async function updateTechnician(id, data) {
     'full_name', 'mobile', 'alternate_mobile', 'email', 'photo_url', 'address', 'area', 'city',
     'state', 'pin_code', 'latitude', 'longitude', 'experience_years',
     'rating', 'total_jobs', 'availability', 'verification_status', 'status', 'consent_given',
+    'designation', 'badge_code', 'id_card_valid_until', 'blood_group', 'id_card_theme',
     'plan_type', 'commission_rate_type', 'commission_rate', 'monthly_fee',
     'subscription_status', 'subscription_start_date', 'subscription_end_date'
   ];
+  const nullableEmptyToNull = new Set([
+    'alternate_mobile', 'email', 'photo_url', 'address', 'pin_code',
+    'designation', 'badge_code', 'id_card_valid_until', 'blood_group', 'id_card_theme',
+    'subscription_start_date', 'subscription_end_date'
+  ]);
   const updates = [];
   const values = [];
   for (const key of allowed) {
     if (data[key] !== undefined) {
       updates.push(`${key} = ?`);
-      values.push(data[key]);
+      const val = nullableEmptyToNull.has(key) && data[key] === '' ? null : data[key];
+      values.push(val);
     }
   }
   if (!updates.length) return 0;

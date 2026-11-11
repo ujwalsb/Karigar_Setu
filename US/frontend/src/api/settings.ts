@@ -12,6 +12,7 @@ export interface PlatformSettings {
   platform_name: string
   tagline: string
   company_name: string
+  company_logo_url?: string
   support_phone: string
   support_email: string
   business_address: string
@@ -42,10 +43,27 @@ export interface PlatformSettings {
 }
 
 export const settingsApi = {
+  getPublicSettings: () => apiClient.get<ApiResponse<Partial<PlatformSettings>>>('/settings/public'),
+
   getSettings: () => apiClient.get<ApiResponse<PlatformSettings>>('/settings'),
 
   updateSettings: (data: Partial<PlatformSettings>) =>
     apiClient.put<ApiResponse<PlatformSettings>>('/settings', data),
+
+  uploadLogo: (file: File) => {
+    const formData = new FormData()
+    formData.append('logo', file)
+    return apiClient.post<ApiResponse<{ company_logo_url: string; settings: PlatformSettings }>>(
+      '/settings/logo',
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } }
+    )
+  },
+
+  deleteLogo: () =>
+    apiClient.delete<ApiResponse<{ company_logo_url: string; settings: PlatformSettings }>>(
+      '/settings/logo'
+    ),
 
   resetSettings: () => apiClient.post<ApiResponse<PlatformSettings>>('/settings/reset'),
 }

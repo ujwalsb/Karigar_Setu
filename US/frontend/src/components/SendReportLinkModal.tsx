@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { useSettings } from '@/store/settingsStore'
+import { getResolvedCompanyName } from '@/lib/utils'
 import { serviceRequestsApi } from '@/api/serviceRequests'
 import {
   formatIndianPhone,
@@ -66,7 +67,7 @@ export function SendReportLinkModal({
     const custName = data.customerName || 'Customer'
     const area = data.customerArea ? ` (${data.customerArea})` : ''
     const cat = data.categoryName || 'Appliance Service'
-    const pName = settings.platform_name || 'Karigar Setu'
+    const pName = getResolvedCompanyName(settings)
 
     const reqs: string[] = []
     if (charges) reqs.push('• Enter total amount collected from customer')
@@ -76,7 +77,7 @@ export function SendReportLinkModal({
 
     if (settings.report_link_whatsapp_template && settings.report_link_whatsapp_template.trim()) {
       let msg = settings.report_link_whatsapp_template
-      msg = msg.replace(/\{\{\s*platform_name\s*\}\}/gi, pName)
+      msg = msg.replace(/\{\{\s*(platform_name|company_name)\s*\}\}/gi, pName)
       msg = msg.replace(/\{\{\s*technician_name\s*\}\}/gi, techName)
       msg = msg.replace(/\{\{\s*job_id\s*\}\}/gi, jobId)
       msg = msg.replace(/\{\{\s*customer_name\s*\}\}/gi, `${custName}${area}`)
@@ -123,6 +124,12 @@ Please submit this immediately after completing the service. Thank you!`.trim()
       setMessage('')
     }
   }, [open, serviceRequestId])
+
+  useEffect(() => {
+    if (open && info && !isCustomEdited) {
+      setMessage(buildTemplate(info))
+    }
+  }, [open, info, isCustomEdited, settings.company_name, settings.platform_name, settings.report_link_whatsapp_template])
 
   const handleOptionToggle = (
     newPhoto: boolean,

@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { settingsApi, PlatformSettings } from '@/api/settings'
+import { useAuth } from '@/store/authStore'
+import { getResolvedCompanyName } from '@/lib/utils'
 
 const DEFAULT_SETTINGS: PlatformSettings = {
   theme: 'light',
@@ -9,6 +11,7 @@ const DEFAULT_SETTINGS: PlatformSettings = {
   platform_name: 'Karigar Setu',
   tagline: 'Connecting Skills & Needs - Appliance & Technician Hub',
   company_name: 'Karigar Setu',
+  company_logo_url: '',
   support_phone: '+91 8805224580',
   support_email: 'support@karigarsetu.local',
   business_address: 'Pune, Maharashtra 411001',
@@ -71,6 +74,8 @@ interface SettingsContextValue {
   settings: PlatformSettings
   loading: boolean
   updateSettings: (data: Partial<PlatformSettings>) => Promise<void>
+  uploadLogo: (file: File) => Promise<string>
+  deleteLogo: () => Promise<void>
   resetSettings: () => Promise<void>
   refreshSettings: () => Promise<void>
 }
@@ -78,6 +83,7 @@ interface SettingsContextValue {
 const SettingsContext = createContext<SettingsContextValue | undefined>(undefined)
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useAuth()
   const [settings, setSettings] = useState<PlatformSettings>(() => {
     // Read cached local settings if present
     const cached = localStorage.getItem('us_platform_settings')
@@ -92,8 +98,12 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   })
   const [loading, setLoading] = useState(false)
 
-  // Apply theme classes to DOM
-  const applyThemeToDOM = (theme: string, primaryColor: string) => {
+  // Apply theme classes & browser document title to DOM
+  const applyThemeToDOM = (
+    theme: string,
+    primaryColor: string,
+    brandSource?: Partial<PlatformSettings>
+  ) => {
     const root = document.documentElement
 
     // 1. Dark / Light mode
@@ -109,6 +119,33 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
     // 2. Primary Color theme attribute
     root.setAttribute('data-theme-color', primaryColor || 'indigo')
+
+    // 3. Dynamic browser tab title from Company Name
+    if (brandSource && typeof document !== 'undefined') {
+      const brandName = getResolvedCompanyName(brandSource)
+      document.title = `${brandName} – Service Platform`
+    }
+  }
+
+  const syncSettingsState = (next: Partial<PlatformSettings>) => {
+    setSettings((prev) => {
+      const merged = { ...DEFAULT_SETTINGS, ...prev, ...next }
+      localStorage.setItem('us_platform_settings', JSON.stringify(merged))
+      applyThemeToDOM(merged.theme, merged.primary_color, merged)
+      return merged
+    })
+  }
+
+  const loadPublicSettings = async () => {
+    try {
+      const res = await settingsApi.getPublicSettings()
+      const data = res.data?.data || res.data
+      if (data && typeof data === 'object') {
+        syncSettingsState(data)
+      }
+    } catch {
+      applyThemeToDOM(settings.theme, settings.primary_color, settings)
+    }
   }
 
   const loadSettings = async () => {
@@ -120,34 +157,56 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         const merged = { ...DEFAULT_SETTINGS, ...data }
         setSettings(merged)
         localStorage.setItem('us_platform_settings', JSON.stringify(merged))
-        applyThemeToDOM(merged.theme, merged.primary_color)
+        applyThemeToDOM(merged.theme, merged.primary_color, merged)
       }
     } catch (err) {
       console.warn('Could not fetch server settings, using defaults/cached:', err)
-      applyThemeToDOM(settings.theme, settings.primary_color)
+      applyThemeToDOM(settings.theme, settings.primary_color, settings)
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    loadSettings()
-  }, [])
+    applyThemeToDOM(settings.theme, settings.primary_color, settings)
+    if (isAuthenticated) {
+      loadSettings()
+    } else {
+      loadPublicSettings()
+    }
+  }, [isAuthenticated])
 
   const handleUpdateSettings = async (data: Partial<PlatformSettings>) => {
-    const updated = { ...settings, ...data }
-    setSettings(updated)
-    localStorage.setItem('us_platform_settings', JSON.stringify(updated))
-    applyThemeToDOM(updated.theme, updated.primary_color)
+    const res = await settingsApi.updateSettings(data)
+    const serverData = res.data?.data
+    syncSettingsState(serverData ? serverData : { ...settings, ...data })
+  }
 
-    // Save to backend
-    await settingsApi.updateSettings(data)
+  const handleUploadLogo = async (file: File): Promise<string> => {
+    const res = await settingsApi.uploadLogo(file)
+    const payload = res.data?.data
+    if (payload?.settings) {
+      syncSettingsState(payload.settings)
+    } else if (payload?.company_logo_url) {
+      syncSettingsState({ ...settings, company_logo_url: payload.company_logo_url })
+    }
+    return payload?.company_logo_url || ''
+  }
+
+  const handleDeleteLogo = async () => {
+    const res = await settingsApi.deleteLogo()
+    const payload = res.data?.data
+    if (payload?.settings) {
+      syncSettingsState(payload.settings)
+    } else {
+      syncSettingsState({ ...settings, company_logo_url: '' })
+    }
   }
 
   const handleResetSettings = async () => {
     setSettings(DEFAULT_SETTINGS)
     localStorage.removeItem('us_platform_settings')
-    applyThemeToDOM(DEFAULT_SETTINGS.theme, DEFAULT_SETTINGS.primary_color)
+    applyThemeToDOM(DEFAULT_SETTINGS.theme, DEFAULT_SETTINGS.primary_color, DEFAULT_SETTINGS)
     await settingsApi.resetSettings()
   }
 
@@ -157,6 +216,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         settings,
         loading,
         updateSettings: handleUpdateSettings,
+        uploadLogo: handleUploadLogo,
+        deleteLogo: handleDeleteLogo,
         resetSettings: handleResetSettings,
         refreshSettings: loadSettings,
       }}

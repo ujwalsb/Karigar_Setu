@@ -21,6 +21,18 @@ const normalizeTechnicianBody = (req, res, next) => {
   if (!req.body.alternate_mobile && (req.body.alternateMobile || req.body.alt_mobile)) {
     req.body.alternate_mobile = req.body.alternateMobile || req.body.alt_mobile;
   }
+  if (req.body.badge_code === undefined && req.body.badgeCode !== undefined) {
+    req.body.badge_code = req.body.badgeCode;
+  }
+  if (req.body.id_card_valid_until === undefined && req.body.idCardValidUntil !== undefined) {
+    req.body.id_card_valid_until = req.body.idCardValidUntil;
+  }
+  if (req.body.blood_group === undefined && req.body.bloodGroup !== undefined) {
+    req.body.blood_group = req.body.bloodGroup;
+  }
+  if (req.body.id_card_theme === undefined && req.body.idCardTheme !== undefined) {
+    req.body.id_card_theme = req.body.idCardTheme;
+  }
   if (req.body.mobile && typeof req.body.mobile === 'string') {
     req.body.mobile = req.body.mobile.replace(/[\s\-\(\)]/g, '');
   }

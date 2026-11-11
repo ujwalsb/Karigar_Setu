@@ -1,7 +1,9 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/store/authStore'
+import { useSettings } from '@/store/settingsStore'
 import { authApi } from '@/api/auth'
+import { resolveAssetUrl, getResolvedCompanyName, getBrandInitials } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -19,7 +21,18 @@ export function LoginPage() {
   const [successMsg, setSuccessMsg] = useState('')
 
   const { login } = useAuth()
+  const { settings } = useSettings()
+  const [logoError, setLogoError] = useState(false)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    setLogoError(false)
+  }, [settings.company_logo_url])
+
+  const companyName = getResolvedCompanyName(settings)
+  const brandLogoUrl = !logoError ? resolveAssetUrl(settings.company_logo_url) : ''
+  const brandInitials = getBrandInitials(companyName)
+  const tagline = (settings.tagline || '').trim() || 'Technician Dispatch & Service Platform'
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -81,12 +94,23 @@ export function LoginPage() {
     <div className="min-h-screen bg-slate-100 flex flex-col justify-center items-center p-4">
       <div className="w-full max-w-md">
         <div className="flex items-center justify-center gap-3 mb-6">
-          <div className="h-12 w-12 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-white text-2xl shadow-lg">
-            KS
-          </div>
+          {brandLogoUrl ? (
+            <div className="h-12 w-12 rounded-xl bg-white border border-slate-200 flex items-center justify-center overflow-hidden shadow-lg p-1 shrink-0">
+              <img
+                src={brandLogoUrl}
+                alt={companyName}
+                onError={() => setLogoError(true)}
+                className="h-full w-full object-contain"
+              />
+            </div>
+          ) : (
+            <div className="h-12 w-12 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-white text-2xl shadow-lg shrink-0">
+              {brandInitials}
+            </div>
+          )}
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Karigar Setu</h1>
-            <p className="text-xs text-slate-500">Technician Dispatch &amp; Appliance Service Platform</p>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{companyName}</h1>
+            <p className="text-xs text-slate-500">{tagline}</p>
           </div>
         </div>
 

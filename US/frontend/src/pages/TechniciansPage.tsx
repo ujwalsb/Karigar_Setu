@@ -1,9 +1,14 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { techniciansApi } from '@/api/technicians'
+import { techniciansApi, openTechnicianDocument } from '@/api/technicians'
 import { categoriesApi } from '@/api/categories'
+import { resolveAssetUrl } from '@/lib/utils'
 import { useAuth } from '@/store/authStore'
+import { useSettings } from '@/store/settingsStore'
 import { TechnicianDetailsModal } from '@/components/TechnicianDetailsModal'
+import { TechnicianIdCard } from '@/components/TechnicianIdCard'
+import { TechnicianIdCardModal } from '@/components/TechnicianIdCardModal'
+import { printTechnicianIdCard } from '@/lib/idCard'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -35,12 +40,18 @@ import {
   FileText,
   ExternalLink,
   Check,
-  Receipt
+  Receipt,
+  Contact2,
+  LayoutGrid,
+  List,
+  Building2,
+  Printer,
 } from 'lucide-react'
 
 export function TechniciansPage() {
   const { user } = useAuth()
   const isAdmin = user?.role === 'admin'
+  const { settings } = useSettings()
   const navigate = useNavigate()
   const [technicians, setTechnicians] = useState<any[]>([])
   const [categories, setCategories] = useState<any[]>([])
@@ -118,6 +129,28 @@ export function TechniciansPage() {
     setSelectedDetailsTechId(id)
     setIsDetailsModalOpen(true)
   }
+
+  // ID Card directory view & modal state
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table')
+  const [idCardTech, setIdCardTech] = useState<any | null>(null)
+  const [isIdCardModalOpen, setIsIdCardModalOpen] = useState(false)
+  const [idCardInitialEdit, setIdCardInitialEdit] = useState(false)
+  const [idCardInitialTab, setIdCardInitialTab] = useState<'technician' | 'company'>('technician')
+
+  const openIdCardModal = (
+    tech: any,
+    editMode = false,
+    editTab: 'technician' | 'company' = 'technician'
+  ) => {
+    setIdCardTech(tech)
+    setIdCardInitialEdit(editMode)
+    setIdCardInitialTab(editTab)
+    setIsIdCardModalOpen(true)
+  }
+
+  const activeIdCardTech = idCardTech
+    ? technicians.find((item) => item.id === idCardTech.id) || idCardTech
+    : null
 
   const fetchTechs = () => {
     setLoading(true)
@@ -439,6 +472,15 @@ export function TechniciansPage() {
       fetchTechs()
     } catch (err: any) {
       setDocsModalError(err.message || 'Failed to delete document.')
+    }
+  }
+
+  const handleViewDoc = async (doc: any) => {
+    setDocsModalError('')
+    try {
+      await openTechnicianDocument(doc.id, doc.mime_type)
+    } catch (err: any) {
+      setDocsModalError(err?.message || 'File not found on disk.')
     }
   }
 
@@ -915,250 +957,86 @@ export function TechniciansPage() {
         </Card>
       )}
 
-      {/* Search Filter Card */}
+      {/* Search Filter & View Toggle Card */}
       <Card className="border-slate-200">
-        <CardContent className="p-4 flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-            <Input
-              placeholder="Search technician by name, phone, locality (e.g. Kothrud, Baner, Wakad)..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 bg-white"
-            />
+        <CardContent className="p-4 flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between">
+          <div className="flex flex-col sm:flex-row gap-3 flex-1">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Search technician by name, phone, locality (e.g. Kothrud, Baner, Wakad)..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') fetchTechs()
+                }}
+                className="pl-9 bg-white"
+              />
+            </div>
+            <Button onClick={fetchTechs} variant="secondary" className="shrink-0">
+              Search
+            </Button>
           </div>
-          <Button onClick={fetchTechs} variant="secondary" className="shrink-0">
-            Search
-          </Button>
+
+          <div className="flex flex-wrap items-center gap-2 justify-between sm:justify-end">
+            <div className="inline-flex rounded-lg border border-slate-200 bg-slate-100 p-0.5">
+              <button
+                type="button"
+                onClick={() => setViewMode('table')}
+                className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${viewMode === 'table'
+                    ? 'bg-white text-indigo-700 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                  }`}
+              >
+                <List className="h-3.5 w-3.5" />
+                List View
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('cards')}
+                className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${viewMode === 'cards'
+                    ? 'bg-white text-indigo-700 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                  }`}
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+                ID Cards ({technicians.length})
+              </button>
+            </div>
+
+            {isAdmin && technicians.length > 0 && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => openIdCardModal(technicians[0], true, 'company')}
+                className="h-9 text-xs border-indigo-200 text-indigo-700 bg-indigo-50/60 hover:bg-indigo-100 flex items-center gap-1.5"
+                title="Edit company name, logo & helpline shown on all ID cards"
+              >
+                <Building2 className="h-3.5 w-3.5" />
+                Company Info &amp; Logo
+              </Button>
+            )}
+          </div>
         </CardContent>
       </Card>
 
-      {/* Technicians List Table */}
-      <Card className="border-slate-200 shadow-xs overflow-hidden bg-white">
-        <CardContent className="p-0">
-          {/* Mobile Card List (< md screens) */}
-          <div className="md:hidden divide-y divide-slate-100">
-            {loading ? (
-              <div className="py-12 text-center text-slate-400">
-                <div className="h-6 w-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-                Loading technicians directory...
-              </div>
-            ) : technicians.length === 0 ? (
-              <div className="p-6 text-center text-slate-400">
-                No technicians found matching criteria.
-              </div>
-            ) : (
-              technicians.map((t) => {
-                const skillsList = t.skills || []
-                const displayedSkills = skillsList.slice(0, 3)
-                const extraSkillsCount = skillsList.length - 3
-                const docsList = t.documents || []
-
-                return (
-                  <div key={t.id} className="p-4 space-y-3 bg-white">
-                    {/* Header: Avatar, Name, Rating */}
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-3">
-                        {t.photo_url ? (
-                          <img
-                            src={t.photo_url}
-                            alt={t.full_name || t.name}
-                            onClick={() => openDetailsModal(t.id)}
-                            className="h-11 w-11 rounded-full object-cover border-2 border-indigo-200 shrink-0 cursor-pointer"
-                          />
-                        ) : (
-                          <div
-                            onClick={() => openDetailsModal(t.id)}
-                            className="h-11 w-11 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-xs shrink-0 border border-indigo-200 cursor-pointer"
-                          >
-                            {(t.full_name || t.name || 'T')
-                              .split(' ')
-                              .map((w: string) => w[0])
-                              .slice(0, 2)
-                              .join('')}
-                          </div>
-                        )}
-                        <div>
-                          <button
-                            type="button"
-                            onClick={() => openDetailsModal(t.id)}
-                            className="font-bold text-sm text-slate-900 hover:text-indigo-600 text-left flex items-center gap-1 group"
-                          >
-                            <span>{t.full_name || t.name}</span>
-                            <Eye className="h-3.5 w-3.5 text-indigo-500" />
-                          </button>
-                          <div className="text-[11px] text-slate-400 flex items-center gap-1.5 flex-wrap mt-0.5">
-                            <span>ID #{t.id}</span>
-                            <span>•</span>
-                            <span>{t.total_jobs || 0} jobs done</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Rating pill */}
-                      <div className="flex items-center gap-1 text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-bold text-xs shrink-0">
-                        <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                        {parseFloat(t.rating || '4.8').toFixed(1)}
-                      </div>
-                    </div>
-
-                    {/* Contact & Location */}
-                    <div className="flex items-center justify-between text-xs text-slate-600 bg-slate-50 p-2.5 rounded-lg border border-slate-100 flex-wrap gap-2">
-                      <a
-                        href={`tel:${t.mobile}`}
-                        className="inline-flex items-center gap-1 text-emerald-800 font-mono font-semibold hover:underline"
-                      >
-                        <Phone className="h-3.5 w-3.5 text-emerald-600" />
-                        {t.mobile}
-                      </a>
-                      <div className="flex items-center gap-1 text-slate-600 font-medium">
-                        <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                        <span>{t.area || 'Pune'}</span>
-                        <span className="text-slate-400 font-mono text-[11px]">({t.pin_code || '411001'})</span>
-                      </div>
-                    </div>
-
-                    {/* Skills pills */}
-                    <div className="flex flex-wrap gap-1">
-                      {displayedSkills.length > 0 ? (
-                        displayedSkills.map((s: any, idx: number) => (
-                          <span
-                            key={idx}
-                            className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-medium"
-                          >
-                            {(s.category_name || s.specialization || '').split('(')[0].replace('Repair', '').trim()}
-                          </span>
-                        ))
-                      ) : (
-                        <span className="text-xs text-slate-400">All Appliances</span>
-                      )}
-                      {extraSkillsCount > 0 && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 font-medium">
-                          +{extraSkillsCount} more
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Plan, Availability & Documents */}
-                    <div className="flex items-center justify-between gap-2 flex-wrap text-xs pt-1">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        {t.plan_type === 'monthly' ? (
-                          <span className="text-[10px] px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 font-semibold">
-                            Monthly (₹{t.monthly_fee || 999}/mo)
-                          </span>
-                        ) : (
-                          <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold">
-                            Commission ({t.commission_rate_type === 'fixed' ? `₹${t.commission_rate || 100}` : `${t.commission_rate || 10}%`})
-                          </span>
-                        )}
-
-                        <Badge
-                          variant="outline"
-                          className={`text-[10px] font-medium capitalize ${t.availability === 'available'
-                              ? 'border-emerald-300 text-emerald-700 bg-emerald-50'
-                              : t.availability === 'busy'
-                                ? 'border-amber-300 text-amber-700 bg-amber-50'
-                                : 'border-slate-300 text-slate-600 bg-slate-50'
-                            }`}
-                        >
-                          {t.availability || 'available'}
-                        </Badge>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => openDocsModal(t)}
-                        className={`inline-flex items-center gap-1 text-[10px] rounded px-2 py-0.5 font-medium border ${docsList.length > 0
-                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                            : 'bg-amber-50 text-amber-800 border-amber-200'
-                          }`}
-                      >
-                        <ShieldCheck className="h-3 w-3 text-emerald-600" />
-                        <span>{docsList.length > 0 ? `${docsList.length} ID Docs` : 'Upload ID'}</span>
-                      </button>
-                    </div>
-
-                    {/* Actions Toolbar */}
-                    <div className="flex items-center gap-1.5 pt-2 border-t border-slate-100">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => openDetailsModal(t.id)}
-                        className="flex-1 text-xs h-8 text-indigo-700 border-indigo-200 bg-indigo-50/70 hover:bg-indigo-100 flex items-center justify-center gap-1 font-medium"
-                      >
-                        <Wrench className="h-3 w-3" />
-                        Details
-                      </Button>
-
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1 text-xs h-8 text-slate-700 hover:text-indigo-600 border-slate-200"
-                        onClick={() =>
-                          navigate(
-                            `/technicians/find?area=${encodeURIComponent(t.area || '')}&pincode=${t.pin_code || ''}`
-                          )
-                        }
-                      >
-                        Match Jobs →
-                      </Button>
-
-                      {isAdmin && (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => openEditModal(t)}
-                            className="text-xs h-8 px-2 text-slate-700 border-slate-200"
-                            title="Edit technician"
-                          >
-                            <Pencil className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setDeletingTech(t)}
-                            className="text-xs h-8 px-2 text-rose-600 border-rose-200 hover:bg-rose-50"
-                            title="Delete technician"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                )
-              })
-            )}
-          </div>
-
-          {/* Desktop Table (>= md screens) */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full min-w-[800px] text-left text-sm">
-              <thead className="bg-slate-50 text-slate-500 border-b border-slate-200 uppercase text-[11px] font-semibold tracking-wider">
-                <tr>
-                  <th className="py-3.5 px-4">Technician Profile</th>
-                  <th className="py-3.5 px-4">Contact & Mobile</th>
-                  <th className="py-3.5 px-4">Coverage Locality</th>
-                  <th className="py-3.5 px-4">Certified Skills</th>
-                  <th className="py-3.5 px-4">Experience & Rating</th>
-                  <th className="py-3.5 px-4">Status & Documents</th>
-                  <th className="py-3.5 px-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-slate-700">
+      {viewMode === 'table' ? (
+        <>
+          {/* Technicians List Table */}
+          <Card className="border-slate-200 shadow-xs overflow-hidden bg-white">
+            <CardContent className="p-0">
+              {/* Mobile Card List (< md screens) */}
+              <div className="md:hidden divide-y divide-slate-100">
                 {loading ? (
-                  <tr>
-                    <td colSpan={7} className="py-12 text-center text-slate-400">
-                      Loading technicians directory...
-                    </td>
-                  </tr>
+                  <div className="py-12 text-center text-slate-400">
+                    <div className="h-6 w-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                    Loading technicians directory...
+                  </div>
                 ) : technicians.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="py-12 text-center text-slate-400">
-                      No technicians found matching criteria.
-                    </td>
-                  </tr>
+                  <div className="p-6 text-center text-slate-400">
+                    No technicians found matching criteria.
+                  </div>
                 ) : (
                   technicians.map((t) => {
                     const skillsList = t.skills || []
@@ -1167,26 +1045,21 @@ export function TechniciansPage() {
                     const docsList = t.documents || []
 
                     return (
-                      <tr key={t.id} className="hover:bg-slate-50/80 transition-colors">
-                        {/* Technician Profile with Avatar */}
-                        <td className="py-3.5 px-4">
+                      <div key={t.id} className="p-4 space-y-3 bg-white">
+                        {/* Header: Avatar, Name, Rating */}
+                        <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-3">
                             {t.photo_url ? (
                               <img
                                 src={t.photo_url}
                                 alt={t.full_name || t.name}
                                 onClick={() => openDetailsModal(t.id)}
-                                className="h-10 w-10 rounded-full object-cover border-2 border-indigo-200 shadow-2xs shrink-0 cursor-pointer hover:opacity-85 hover:scale-105 transition-all"
-                                title="Click to view full technician details & history"
-                                onError={(e) => {
-                                  (e.currentTarget as HTMLElement).style.display = 'none'
-                                }}
+                                className="h-11 w-11 rounded-full object-cover border-2 border-indigo-200 shrink-0 cursor-pointer"
                               />
                             ) : (
                               <div
                                 onClick={() => openDetailsModal(t.id)}
-                                className="h-10 w-10 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-xs shrink-0 border border-indigo-200 cursor-pointer hover:bg-indigo-200 hover:scale-105 transition-all"
-                                title="Click to view full technician details & history"
+                                className="h-11 w-11 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-xs shrink-0 border border-indigo-200 cursor-pointer"
                               >
                                 {(t.full_name || t.name || 'T')
                                   .split(' ')
@@ -1199,87 +1072,76 @@ export function TechniciansPage() {
                               <button
                                 type="button"
                                 onClick={() => openDetailsModal(t.id)}
-                                className="font-semibold text-slate-900 hover:text-indigo-600 hover:underline text-left flex items-center gap-1.5 group cursor-pointer"
-                                title="Click to view full technician profile, documents & job history"
+                                className="font-bold text-sm text-slate-900 hover:text-indigo-600 text-left flex items-center gap-1 group"
                               >
-                                <span className="group-hover:translate-x-0.5 transition-transform">{t.full_name || t.name}</span>
-                                {t.photo_url && (
-                                  <span title="Profile Photo Verified">
-                                    <Camera className="h-3 w-3 text-indigo-600" />
-                                  </span>
-                                )}
-                                <span className="text-[10px] text-indigo-600 font-normal ml-0.5 underline decoration-indigo-300">(View Details →)</span>
+                                <span>{t.full_name || t.name}</span>
+                                <Eye className="h-3.5 w-3.5 text-indigo-500" />
                               </button>
-                              <div className="text-[11px] text-slate-400 flex items-center gap-1.5 flex-wrap">
-                                <span>ID #{t.id} • {t.total_jobs || 0} jobs done</span>
-                                {t.plan_type === 'monthly' ? (
-                                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-blue-50 text-blue-700 border border-blue-200 font-semibold">
-                                    Monthly (₹{t.monthly_fee || 999}/mo)
-                                  </span>
-                                ) : (
-                                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold">
-                                    Commission ({t.commission_rate_type === 'fixed' ? `₹${t.commission_rate || 100}` : `${t.commission_rate || 10}%`})
-                                  </span>
-                                )}
+                              <div className="text-[11px] text-slate-400 flex items-center gap-1.5 flex-wrap mt-0.5">
+                                <span>ID #{t.id}</span>
+                                <span>•</span>
+                                <span>{t.total_jobs || 0} jobs done</span>
                               </div>
                             </div>
                           </div>
-                        </td>
 
-                        <td className="py-3.5 px-4">
-                          <a
-                            href={`tel:${t.mobile}`}
-                            className="inline-flex items-center gap-1 text-slate-800 font-medium hover:text-indigo-600"
-                          >
-                            <Phone className="h-3 w-3 text-slate-400" />
-                            {t.mobile}
-                          </a>
-                          {t.alternate_mobile && (
-                            <div className="text-xs text-slate-400">{t.alternate_mobile}</div>
-                          )}
-                        </td>
-
-                        <td className="py-3.5 px-4">
-                          <div className="flex items-center gap-1 font-medium text-slate-800">
-                            <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                            {t.area || 'Pune'}
-                          </div>
-                          <span className="text-xs text-slate-400">{t.pin_code || '411001'}</span>
-                        </td>
-
-                        <td className="py-3.5 px-4 max-w-xs">
-                          <div className="flex flex-wrap gap-1">
-                            {displayedSkills.length > 0 ? (
-                              displayedSkills.map((s: any, idx: number) => (
-                                <span
-                                  key={idx}
-                                  className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-medium"
-                                >
-                                  {(s.category_name || s.specialization || '').split('(')[0].replace('Repair', '').trim()}
-                                </span>
-                              ))
-                            ) : (
-                              <span className="text-xs text-slate-400">All Appliances</span>
-                            )}
-                            {extraSkillsCount > 0 && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 font-medium">
-                                +{extraSkillsCount} more
-                              </span>
-                            )}
-                          </div>
-                        </td>
-
-                        <td className="py-3.5 px-4">
-                          <div className="flex items-center gap-1 text-amber-600 font-semibold text-xs">
+                          {/* Rating pill */}
+                          <div className="flex items-center gap-1 text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-bold text-xs shrink-0">
                             <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
                             {parseFloat(t.rating || '4.8').toFixed(1)}
                           </div>
-                          <span className="text-xs text-slate-500">{t.experience_years || 5} yrs exp</span>
-                        </td>
+                        </div>
 
-                        {/* Status & Verification Documents */}
-                        <td className="py-3.5 px-4">
-                          <div className="space-y-1.5">
+                        {/* Contact & Location */}
+                        <div className="flex items-center justify-between text-xs text-slate-600 bg-slate-50 p-2.5 rounded-lg border border-slate-100 flex-wrap gap-2">
+                          <a
+                            href={`tel:${t.mobile}`}
+                            className="inline-flex items-center gap-1 text-emerald-800 font-mono font-semibold hover:underline"
+                          >
+                            <Phone className="h-3.5 w-3.5 text-emerald-600" />
+                            {t.mobile}
+                          </a>
+                          <div className="flex items-center gap-1 text-slate-600 font-medium">
+                            <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                            <span>{t.area || 'Pune'}</span>
+                            <span className="text-slate-400 font-mono text-[11px]">({t.pin_code || '411001'})</span>
+                          </div>
+                        </div>
+
+                        {/* Skills pills */}
+                        <div className="flex flex-wrap gap-1">
+                          {displayedSkills.length > 0 ? (
+                            displayedSkills.map((s: any, idx: number) => (
+                              <span
+                                key={idx}
+                                className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-medium"
+                              >
+                                {(s.category_name || s.specialization || '').split('(')[0].replace('Repair', '').trim()}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-xs text-slate-400">All Appliances</span>
+                          )}
+                          {extraSkillsCount > 0 && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 font-medium">
+                              +{extraSkillsCount} more
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Plan, Availability & Documents */}
+                        <div className="flex items-center justify-between gap-2 flex-wrap text-xs pt-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {t.plan_type === 'monthly' ? (
+                              <span className="text-[10px] px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 font-semibold">
+                                Monthly (₹{t.monthly_fee || 999}/mo)
+                              </span>
+                            ) : (
+                              <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold">
+                                Commission ({t.commission_rate_type === 'fixed' ? `₹${t.commission_rate || 100}` : `${t.commission_rate || 10}%`})
+                              </span>
+                            )}
+
                             <Badge
                               variant="outline"
                               className={`text-[10px] font-medium capitalize ${t.availability === 'available'
@@ -1289,88 +1151,414 @@ export function TechniciansPage() {
                                   : 'border-slate-300 text-slate-600 bg-slate-50'
                                 }`}
                             >
-                              <span
-                                className={`h-1.5 w-1.5 rounded-full mr-1 ${t.availability === 'available'
-                                  ? 'bg-emerald-500'
-                                  : t.availability === 'busy'
-                                    ? 'bg-amber-500'
-                                    : 'bg-slate-400'
-                                  }`}
-                              />
                               {t.availability || 'available'}
                             </Badge>
+                          </div>
 
-                            {/* Verification & KYC Documents Pill */}
-                            <div>
-                              <button
-                                type="button"
-                                onClick={() => openDocsModal(t)}
-                                className={`inline-flex items-center gap-1 text-[11px] rounded px-2 py-0.5 font-medium transition-colors border ${docsList.length > 0
-                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
-                                  : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
-                                  }`}
-                                title="View & Manage Government Verification Documents"
+                          <button
+                            type="button"
+                            onClick={() => openDocsModal(t)}
+                            className={`inline-flex items-center gap-1 text-[10px] rounded px-2 py-0.5 font-medium border ${docsList.length > 0
+                              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                              : 'bg-amber-50 text-amber-800 border-amber-200'
+                              }`}
+                          >
+                            <ShieldCheck className="h-3 w-3 text-emerald-600" />
+                            <span>{docsList.length > 0 ? `${docsList.length} ID Docs` : 'Upload ID'}</span>
+                          </button>
+                        </div>
+
+                        {/* Actions Toolbar */}
+                        <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-100">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => openDetailsModal(t.id)}
+                            className="flex-1 min-w-[78px] text-xs h-8 text-indigo-700 border-indigo-200 bg-indigo-50/70 hover:bg-indigo-100 flex items-center justify-center gap-1 font-medium"
+                          >
+                            <Wrench className="h-3 w-3" />
+                            Details
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => openIdCardModal(t, false)}
+                            className="flex-1 min-w-[82px] text-xs h-8 text-sky-700 border-sky-200 bg-sky-50/70 hover:bg-sky-100 flex items-center justify-center gap-1 font-medium"
+                          >
+                            <Contact2 className="h-3 w-3" />
+                            ID Card
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 min-w-[96px] text-xs h-8 text-slate-700 hover:text-indigo-600 border-slate-200"
+                            onClick={() =>
+                              navigate(
+                                `/technicians/find?area=${encodeURIComponent(t.area || '')}&pincode=${t.pin_code || ''}`
+                              )
+                            }
+                          >
+                            Match Jobs →
+                          </Button>
+
+                          {isAdmin && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => openEditModal(t)}
+                                className="text-xs h-8 px-2 text-slate-700 border-slate-200"
+                                title="Edit technician"
                               >
-                                <ShieldCheck className="h-3 w-3 text-emerald-600" />
-                                <span>
-                                  {docsList.length > 0
-                                    ? `${docsList.length} ID Doc${docsList.length > 1 ? 's' : ''}`
-                                    : 'Upload Govt ID'}
-                                </span>
-                              </button>
-                            </div>
-                          </div>
-                        </td>
-
-                        <td className="py-3.5 px-4 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-xs text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 h-7 px-2"
-                              onClick={() =>
-                                navigate(
-                                  `/technicians/find?area=${encodeURIComponent(t.area || '')}&pincode=${t.pin_code || ''}`
-                                )
-                              }
-                            >
-                              Match Jobs →
-                            </Button>
-                            {isAdmin && (
-                              <>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => openEditModal(t)}
-                                  className="text-xs text-slate-700 hover:text-indigo-600 h-7 px-2 flex items-center gap-1"
-                                  title="Edit technician details (Admin Only)"
-                                >
-                                  <Pencil className="h-3 w-3" />
-                                  Edit
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => setDeletingTech(t)}
-                                  className="text-xs text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 h-7 px-2 flex items-center gap-1"
-                                  title="Delete technician (Admin Only)"
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                  Delete
-                                </Button>
-                              </>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
+                                <Pencil className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setDeletingTech(t)}
+                                className="text-xs h-8 px-2 text-rose-600 border-rose-200 hover:bg-rose-50"
+                                title="Delete technician"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </div>
                     )
                   })
                 )}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+              </div>
+
+              {/* Desktop Table (>= md screens) */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full min-w-[800px] text-left text-sm">
+                  <thead className="bg-slate-50 text-slate-500 border-b border-slate-200 uppercase text-[11px] font-semibold tracking-wider">
+                    <tr>
+                      <th className="py-3.5 px-4">Technician Profile</th>
+                      <th className="py-3.5 px-4">Contact & Mobile</th>
+                      <th className="py-3.5 px-4">Coverage Locality</th>
+                      <th className="py-3.5 px-4">Certified Skills</th>
+                      <th className="py-3.5 px-4">Experience & Rating</th>
+                      <th className="py-3.5 px-4">Status & Documents</th>
+                      <th className="py-3.5 px-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-slate-700">
+                    {loading ? (
+                      <tr>
+                        <td colSpan={7} className="py-12 text-center text-slate-400">
+                          Loading technicians directory...
+                        </td>
+                      </tr>
+                    ) : technicians.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="py-12 text-center text-slate-400">
+                          No technicians found matching criteria.
+                        </td>
+                      </tr>
+                    ) : (
+                      technicians.map((t) => {
+                        const skillsList = t.skills || []
+                        const displayedSkills = skillsList.slice(0, 3)
+                        const extraSkillsCount = skillsList.length - 3
+                        const docsList = t.documents || []
+
+                        return (
+                          <tr key={t.id} className="hover:bg-slate-50/80 transition-colors">
+                            {/* Technician Profile with Avatar */}
+                            <td className="py-3.5 px-4">
+                              <div className="flex items-center gap-3">
+                                {t.photo_url ? (
+                                  <img
+                                    src={t.photo_url}
+                                    alt={t.full_name || t.name}
+                                    onClick={() => openDetailsModal(t.id)}
+                                    className="h-10 w-10 rounded-full object-cover border-2 border-indigo-200 shadow-2xs shrink-0 cursor-pointer hover:opacity-85 hover:scale-105 transition-all"
+                                    title="Click to view full technician details & history"
+                                    onError={(e) => {
+                                      (e.currentTarget as HTMLElement).style.display = 'none'
+                                    }}
+                                  />
+                                ) : (
+                                  <div
+                                    onClick={() => openDetailsModal(t.id)}
+                                    className="h-10 w-10 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-xs shrink-0 border border-indigo-200 cursor-pointer hover:bg-indigo-200 hover:scale-105 transition-all"
+                                    title="Click to view full technician details & history"
+                                  >
+                                    {(t.full_name || t.name || 'T')
+                                      .split(' ')
+                                      .map((w: string) => w[0])
+                                      .slice(0, 2)
+                                      .join('')}
+                                  </div>
+                                )}
+                                <div>
+                                  <button
+                                    type="button"
+                                    onClick={() => openDetailsModal(t.id)}
+                                    className="font-semibold text-slate-900 hover:text-indigo-600 hover:underline text-left flex items-center gap-1.5 group cursor-pointer"
+                                    title="Click to view full technician profile, documents & job history"
+                                  >
+                                    <span className="group-hover:translate-x-0.5 transition-transform">{t.full_name || t.name}</span>
+                                    {t.photo_url && (
+                                      <span title="Profile Photo Verified">
+                                        <Camera className="h-3 w-3 text-indigo-600" />
+                                      </span>
+                                    )}
+                                    <span className="text-[10px] text-indigo-600 font-normal ml-0.5 underline decoration-indigo-300">(View Details →)</span>
+                                  </button>
+                                  <div className="text-[11px] text-slate-400 flex items-center gap-1.5 flex-wrap">
+                                    <span>ID #{t.id} • {t.total_jobs || 0} jobs done</span>
+                                    {t.plan_type === 'monthly' ? (
+                                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-blue-50 text-blue-700 border border-blue-200 font-semibold">
+                                        Monthly (₹{t.monthly_fee || 999}/mo)
+                                      </span>
+                                    ) : (
+                                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold">
+                                        Commission ({t.commission_rate_type === 'fixed' ? `₹${t.commission_rate || 100}` : `${t.commission_rate || 10}%`})
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+
+                            <td className="py-3.5 px-4">
+                              <a
+                                href={`tel:${t.mobile}`}
+                                className="inline-flex items-center gap-1 text-slate-800 font-medium hover:text-indigo-600"
+                              >
+                                <Phone className="h-3 w-3 text-slate-400" />
+                                {t.mobile}
+                              </a>
+                              {t.alternate_mobile && (
+                                <div className="text-xs text-slate-400">{t.alternate_mobile}</div>
+                              )}
+                            </td>
+
+                            <td className="py-3.5 px-4">
+                              <div className="flex items-center gap-1 font-medium text-slate-800">
+                                <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                                {t.area || 'Pune'}
+                              </div>
+                              <span className="text-xs text-slate-400">{t.pin_code || '411001'}</span>
+                            </td>
+
+                            <td className="py-3.5 px-4 max-w-xs">
+                              <div className="flex flex-wrap gap-1">
+                                {displayedSkills.length > 0 ? (
+                                  displayedSkills.map((s: any, idx: number) => (
+                                    <span
+                                      key={idx}
+                                      className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-medium"
+                                    >
+                                      {(s.category_name || s.specialization || '').split('(')[0].replace('Repair', '').trim()}
+                                    </span>
+                                  ))
+                                ) : (
+                                  <span className="text-xs text-slate-400">All Appliances</span>
+                                )}
+                                {extraSkillsCount > 0 && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 font-medium">
+                                    +{extraSkillsCount} more
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+
+                            <td className="py-3.5 px-4">
+                              <div className="flex items-center gap-1 text-amber-600 font-semibold text-xs">
+                                <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                                {parseFloat(t.rating || '4.8').toFixed(1)}
+                              </div>
+                              <span className="text-xs text-slate-500">{t.experience_years || 5} yrs exp</span>
+                            </td>
+
+                            {/* Status & Verification Documents */}
+                            <td className="py-3.5 px-4">
+                              <div className="space-y-1.5">
+                                <Badge
+                                  variant="outline"
+                                  className={`text-[10px] font-medium capitalize ${t.availability === 'available'
+                                    ? 'border-emerald-300 text-emerald-700 bg-emerald-50'
+                                    : t.availability === 'busy'
+                                      ? 'border-amber-300 text-amber-700 bg-amber-50'
+                                      : 'border-slate-300 text-slate-600 bg-slate-50'
+                                    }`}
+                                >
+                                  <span
+                                    className={`h-1.5 w-1.5 rounded-full mr-1 ${t.availability === 'available'
+                                      ? 'bg-emerald-500'
+                                      : t.availability === 'busy'
+                                        ? 'bg-amber-500'
+                                        : 'bg-slate-400'
+                                      }`}
+                                  />
+                                  {t.availability || 'available'}
+                                </Badge>
+
+                                {/* Verification & KYC Documents Pill */}
+                                <div>
+                                  <button
+                                    type="button"
+                                    onClick={() => openDocsModal(t)}
+                                    className={`inline-flex items-center gap-1 text-[11px] rounded px-2 py-0.5 font-medium transition-colors border ${docsList.length > 0
+                                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                                      : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
+                                      }`}
+                                    title="View & Manage Government Verification Documents"
+                                  >
+                                    <ShieldCheck className="h-3 w-3 text-emerald-600" />
+                                    <span>
+                                      {docsList.length > 0
+                                        ? `${docsList.length} ID Doc${docsList.length > 1 ? 's' : ''}`
+                                        : 'Upload Govt ID'}
+                                    </span>
+                                  </button>
+                                </div>
+                              </div>
+                            </td>
+
+                            <td className="py-3.5 px-4 text-right">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => openIdCardModal(t, false)}
+                                  className="text-xs text-sky-700 border-sky-200 bg-sky-50/70 hover:bg-sky-100 h-7 px-2 flex items-center gap-1"
+                                  title="View, print, download or edit technician ID card"
+                                >
+                                  <Contact2 className="h-3 w-3" />
+                                  ID Card
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-xs text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 h-7 px-2"
+                                  onClick={() =>
+                                    navigate(
+                                      `/technicians/find?area=${encodeURIComponent(t.area || '')}&pincode=${t.pin_code || ''}`
+                                    )
+                                  }
+                                >
+                                  Match Jobs →
+                                </Button>
+                                {isAdmin && (
+                                  <>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => openEditModal(t)}
+                                      className="text-xs text-slate-700 hover:text-indigo-600 h-7 px-2 flex items-center gap-1"
+                                      title="Edit technician details (Admin Only)"
+                                    >
+                                      <Pencil className="h-3 w-3" />
+                                      Edit
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => setDeletingTech(t)}
+                                      className="text-xs text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 h-7 px-2 flex items-center gap-1"
+                                      title="Delete technician (Admin Only)"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                      Delete
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      ) : (
+        <div className="space-y-4">
+          {loading ? (
+            <Card className="border-slate-200 bg-white">
+              <CardContent className="py-12 text-center text-slate-400">
+                Loading technician ID cards...
+              </CardContent>
+            </Card>
+          ) : technicians.length === 0 ? (
+            <Card className="border-slate-200 bg-white">
+              <CardContent className="py-12 text-center text-slate-400">
+                No technicians found matching criteria.
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {technicians.map((t) => (
+                <div
+                  key={t.id}
+                  className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs flex flex-col gap-3"
+                >
+                  <TechnicianIdCard
+                    technician={t}
+                    company={settings}
+                    showEditButton={isAdmin}
+                    onEdit={() => openIdCardModal(t, true, 'technician')}
+                  />
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                    <div className="flex items-center gap-1.5">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => openIdCardModal(t, false)}
+                        className="h-8 text-xs border-sky-200 text-sky-700 bg-sky-50/70 hover:bg-sky-100 flex items-center gap-1"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                        View &amp; Export
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => printTechnicianIdCard(t, settings)}
+                        className="h-8 text-xs text-slate-700 border-slate-200 hover:bg-slate-50 flex items-center gap-1"
+                        title="Print ID Card"
+                      >
+                        <Printer className="h-3.5 w-3.5" />
+                        Print
+                      </Button>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      {isAdmin && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openIdCardModal(t, true, 'technician')}
+                          className="h-8 text-xs border-indigo-200 text-indigo-700 bg-indigo-50/60 hover:bg-indigo-100 flex items-center gap-1"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                          Edit Card
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => openDetailsModal(t.id)}
+                        className="h-8 text-xs text-slate-600 hover:text-indigo-700"
+                      >
+                        Profile →
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* DOCUMENT VIEWER & KYC MANAGEMENT MODAL */}
       {viewingDocsTech && (
@@ -1411,7 +1599,7 @@ export function TechniciansPage() {
               <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200 flex items-center gap-4">
                 {viewingDocsTech.photo_url ? (
                   <div className="relative h-16 w-16 rounded-full overflow-hidden border-2 border-indigo-400 shadow shrink-0">
-                    <img src={viewingDocsTech.photo_url} alt="Profile" className="h-full w-full object-cover" />
+                    <img src={resolveAssetUrl(viewingDocsTech.photo_url)} alt="Profile" className="h-full w-full object-cover" />
                   </div>
                 ) : (
                   <div className="h-16 w-16 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-sm shrink-0 border border-indigo-200">
@@ -1432,7 +1620,7 @@ export function TechniciansPage() {
                 </div>
                 {viewingDocsTech.photo_url && (
                   <a
-                    href={viewingDocsTech.photo_url}
+                    href={resolveAssetUrl(viewingDocsTech.photo_url)}
                     target="_blank"
                     rel="noreferrer"
                     className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1 px-2.5 py-1.5 rounded border border-indigo-200 bg-white"
@@ -1498,14 +1686,13 @@ export function TechniciansPage() {
                         </div>
 
                         <div className="flex items-center gap-1.5 shrink-0">
-                          <a
-                            href={`/api/v1/documents/${doc.id}/download?inline=true`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-xs text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 px-2 py-1 rounded border border-indigo-200 flex items-center gap-1"
+                          <button
+                            type="button"
+                            onClick={() => handleViewDoc(doc)}
+                            className="text-xs text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 px-2 py-1 rounded border border-indigo-200 flex items-center gap-1 bg-white cursor-pointer"
                           >
                             <Eye className="h-3 w-3" /> View
-                          </a>
+                          </button>
                           {isAdmin && !doc.is_verified && (
                             <Button
                               size="sm"
@@ -1907,6 +2094,17 @@ export function TechniciansPage() {
         onEdit={(t) => openEditModal(t)}
         onTechnicianUpdated={fetchTechs}
         isAdmin={isAdmin}
+      />
+
+      {/* TECHNICIAN ID CARD PREVIEW & EDITOR MODAL */}
+      <TechnicianIdCardModal
+        open={isIdCardModalOpen}
+        onOpenChange={setIsIdCardModalOpen}
+        technician={activeIdCardTech}
+        initialEditMode={idCardInitialEdit}
+        initialEditTab={idCardInitialTab}
+        isAdmin={isAdmin}
+        onSaved={fetchTechs}
       />
     </div>
   )

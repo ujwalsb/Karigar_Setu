@@ -74,3 +74,55 @@ export const techniciansApi = {
     apiClient.get<ApiResponse<any[]>>(`/technicians/${id}/history`),
 }
 
+export async function openTechnicianDocument(docId: number, fallbackMime?: string): Promise<void> {
+  const newTab = typeof window !== 'undefined' ? window.open('about:blank', '_blank') : null
+  if (newTab) {
+    newTab.document.write(
+      '<p style="font-family:system-ui,sans-serif;padding:24px;color:#475569;font-size:14px;">Loading document...</p>'
+    )
+  }
+
+  try {
+    const response = await apiClient.get(`/documents/${docId}/download`, {
+      params: { inline: true },
+      responseType: 'blob',
+    })
+    const rawContentType = response.headers?.['content-type']
+    const contentType =
+      typeof rawContentType === 'string' && rawContentType.trim()
+        ? rawContentType
+        : fallbackMime || 'application/octet-stream'
+    const blob = new Blob([response.data], { type: contentType })
+    const blobUrl = URL.createObjectURL(blob)
+
+    if (newTab && !newTab.closed) {
+      newTab.location.href = blobUrl
+    } else if (typeof window !== 'undefined') {
+      const link = document.createElement('a')
+      link.href = blobUrl
+      link.target = '_blank'
+      link.rel = 'noreferrer'
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+    }
+
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000)
+  } catch (err: any) {
+    if (newTab && !newTab.closed) {
+      newTab.close()
+    }
+    let message = err?.message || 'Unable to load document.'
+    const errBlob = err?.response?.data
+    if (errBlob instanceof Blob) {
+      try {
+        const parsed = JSON.parse(await errBlob.text())
+        if (parsed?.message) message = parsed.message
+      } catch {
+        // ignore non-JSON blob error payload
+      }
+    }
+    throw new Error(message)
+  }
+}
+

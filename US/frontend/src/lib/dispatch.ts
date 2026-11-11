@@ -85,7 +85,7 @@ export function generateWhatsAppMessage(
 
   if (customTemplate && customTemplate.trim()) {
     let msg = customTemplate
-    msg = msg.replace(/\{\{\s*platform_name\s*\}\}/gi, platformName)
+    msg = msg.replace(/\{\{\s*(platform_name|company_name)\s*\}\}/gi, platformName)
     msg = msg.replace(/\{\{\s*technician_name\s*\}\}/gi, details.technicianName || 'Technician')
     msg = msg.replace(/\{\{\s*job_id\s*\}\}/gi, displayJobId)
     msg = msg.replace(/\{\{\s*service_category\s*\}\}/gi, details.serviceCategory || 'Appliance Service')

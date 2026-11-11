@@ -11,7 +11,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { customersApi } from '@/api/customers'
 import { serviceRequestsApi } from '@/api/serviceRequests'
-import { formatDate, getStatusColor } from '@/lib/utils'
+import { formatDate, getStatusColor, getResolvedCompanyName } from '@/lib/utils'
+import { useSettings } from '@/store/settingsStore'
 import { DispatchModal } from '@/components/DispatchModal'
 import { DispatchDetails, openWhatsApp } from '@/lib/dispatch'
 import {
@@ -51,6 +52,8 @@ export function CustomerServiceDetailsModal({
   customerId,
   onCustomerUpdated,
 }: CustomerServiceDetailsModalProps) {
+  const { settings } = useSettings()
+  const companyName = getResolvedCompanyName(settings)
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState<any | null>(null)
   const [activeTab, setActiveTab] = useState<'requests' | 'calls'>('requests')
@@ -881,7 +884,7 @@ export function CustomerServiceDetailsModal({
           )}
 
           <div className="flex items-center justify-between pt-3 border-t border-slate-100 text-xs text-slate-500">
-            <span>Karigar Setu Platform • Customer Lifetime Details</span>
+            <span>{companyName} • Customer Lifetime Details</span>
             <Button
               type="button"
               variant="outline"

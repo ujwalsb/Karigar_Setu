@@ -12,12 +12,17 @@ const ALLOWED_TYPES = (process.env.ALLOWED_FILE_TYPES || 'jpg,jpeg,png,pdf')
 const MAX_SIZE_MB = parseInt(process.env.MAX_FILE_SIZE_MB) || 10;
 const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
 
+const BACKEND_ROOT = path.resolve(__dirname, '../..');
+const RAW_UPLOAD_PATH = process.env.UPLOAD_PATH || './uploads';
+const UPLOADS_BASE_DIR = path.isAbsolute(RAW_UPLOAD_PATH)
+  ? RAW_UPLOAD_PATH
+  : path.resolve(BACKEND_ROOT, RAW_UPLOAD_PATH);
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const technicianId = req.params.technicianId || req.body.technician_id || 'unknown';
     const uploadDir = path.join(
-      process.cwd(),
-      process.env.UPLOAD_PATH || './uploads',
+      UPLOADS_BASE_DIR,
       'documents',
       String(technicianId)
     );
@@ -63,4 +68,5 @@ const multerUpload = multer({
   }
 });
 
+multerUpload.UPLOADS_BASE_DIR = UPLOADS_BASE_DIR;
 module.exports = multerUpload;

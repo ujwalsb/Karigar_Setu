@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
+import { useSettings } from '@/store/settingsStore'
+import { resolveAssetUrl, getResolvedCompanyName } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -35,12 +37,16 @@ const API_BASE = getApiBase()
 
 export function TechnicianReportPage() {
   const { token } = useParams<{ token: string }>()
+  const { settings } = useSettings()
 
   const [loading, setLoading] = useState(true)
   const [job, setJob] = useState<any | null>(null)
   const [errorMsg, setErrorMsg] = useState('')
   const [success, setSuccess] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+
+  const brandName = (job?.branding?.companyName || getResolvedCompanyName(settings)).trim()
+  const brandLogoUrl = resolveAssetUrl(job?.branding?.companyLogoUrl || settings.company_logo_url)
 
   // Form State
   const [workDescription, setWorkDescription] = useState('')
@@ -197,7 +203,7 @@ export function TechnicianReportPage() {
             <p className="text-xs text-slate-500 mt-1">{errorMsg}</p>
           </div>
           <p className="text-xs text-slate-400">
-            Please ask Karigar Setu support or administrator to re-send the WhatsApp submission link.
+            Please ask {brandName} support or administrator to re-send the WhatsApp submission link.
           </p>
         </Card>
       </div>
@@ -210,8 +216,12 @@ export function TechnicianReportPage() {
         {/* Brand Header */}
         <div className="text-center space-y-1">
           <div className="inline-flex items-center gap-2 bg-emerald-600 text-white text-xs font-semibold px-3 py-1 rounded-full shadow-xs">
-            <ShieldCheck className="h-4 w-4" />
-            Karigar Setu Platform
+            {brandLogoUrl ? (
+              <img src={brandLogoUrl} alt={brandName} className="h-4 w-4 rounded-sm bg-white object-contain p-0.5" />
+            ) : (
+              <ShieldCheck className="h-4 w-4" />
+            )}
+            {brandName}
           </div>
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
             Technician Work &amp; Completion Report
@@ -267,7 +277,7 @@ export function TechnicianReportPage() {
             </div>
 
             <p className="text-[11px] text-slate-400">
-              You may close this window now. Karigar Setu admin and the customer have been updated.
+              You may close this window now. {brandName} admin and the customer have been updated.
             </p>
           </Card>
         ) : (

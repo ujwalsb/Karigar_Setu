@@ -123,7 +123,8 @@ async function updateTechnician(req, res, next) {
     }
 
     await logActivity(req.user.id, 'UPDATE_TECHNICIAN', 'technician', parseInt(id), techData, req.ip);
-    return res.json({ success: true, message: 'Technician updated successfully.' });
+    const updatedTechnician = await technicianModel.findById(parseInt(id));
+    return res.json({ success: true, message: 'Technician updated successfully.', data: updatedTechnician });
   } catch (err) {
     next(err);
   }

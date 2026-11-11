@@ -130,8 +130,13 @@ export interface Technician {
   alternate_mobile?: string;
   alt_mobile?: string;
   email?: string;
-  photo_url?: string;
+  photo_url?: string | null;
   profilePhoto?: string;
+  designation?: string | null;
+  badge_code?: string | null;
+  id_card_valid_until?: string | null;
+  blood_group?: string | null;
+  id_card_theme?: string | null;
   address?: string;
   area?: string;
   city?: string;

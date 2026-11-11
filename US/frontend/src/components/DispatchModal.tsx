@@ -9,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useSettings } from '@/store/settingsStore'
+import { getResolvedCompanyName } from '@/lib/utils'
 import {
   DispatchDetails,
   generateWhatsAppMessage,
@@ -53,16 +54,18 @@ export function DispatchModal({
   const [copied, setCopied] = useState(false)
   const [isCustomEdited, setIsCustomEdited] = useState(false)
 
+  const companyName = getResolvedCompanyName(settings)
+
   const buildCurrentMessage = (tab: 'whatsapp' | 'sms') => {
     if (!details) return ''
     if (tab === 'whatsapp') {
       return generateWhatsAppMessage(
         details,
         settings.dispatch_whatsapp_template,
-        settings.platform_name || 'Karigar Setu'
+        companyName
       )
     }
-    return generateSMSMessage(details, settings.platform_name || 'Karigar Setu')
+    return generateSMSMessage(details, companyName)
   }
 
   // Re-sync message when details or tab change (unless user custom-edited)
@@ -76,7 +79,7 @@ export function DispatchModal({
     if (!isCustomEdited) {
       setMessage(buildCurrentMessage(activeTab))
     }
-  }, [details, activeTab, isCustomEdited, settings.dispatch_whatsapp_template, settings.platform_name])
+  }, [details, activeTab, isCustomEdited, settings.dispatch_whatsapp_template, settings.company_name, settings.platform_name])
 
   // Reset custom edit flag when modal opens fresh
   useEffect(() => {
@@ -84,7 +87,7 @@ export function DispatchModal({
       setIsCustomEdited(false)
       setMessage(buildCurrentMessage(activeTab))
     }
-  }, [open, settings.dispatch_whatsapp_template, settings.platform_name])
+  }, [open, settings.dispatch_whatsapp_template, settings.company_name, settings.platform_name])
 
   if (!details) return null
 

@@ -1,5 +1,6 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { useSettings } from '@/store/settingsStore'
+import { resolveAssetUrl } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -30,16 +31,21 @@ import {
   Lock,
   Database,
   Send,
+  Upload,
+  Trash2,
+  Image as ImageIcon,
 } from 'lucide-react'
 
 export function SettingsPage() {
-  const { settings, updateSettings, resetSettings, loading } = useSettings()
+  const { settings, updateSettings, uploadLogo, deleteLogo, resetSettings, loading } = useSettings()
 
   // Local form state initialized from global settings
   const [formData, setFormData] = useState({ ...settings })
   const [activeTab, setActiveTab] = useState<'themes' | 'branding' | 'operations' | 'messaging' | 'security'>('themes')
   const [saving, setSaving] = useState(false)
   const [resetting, setResetting] = useState(false)
+  const [logoUploading, setLogoUploading] = useState(false)
+  const logoInputRef = useRef<HTMLInputElement | null>(null)
   const [successMsg, setSuccessMsg] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
 
@@ -52,7 +58,51 @@ export function SettingsPage() {
   }, [settings])
 
   const handleFieldChange = (key: string, value: any) => {
-    setFormData((prev) => ({ ...prev, [key]: value }))
+    setFormData((prev) => {
+      if (key === 'company_name') {
+        const prevCompany = String(prev.company_name || '').trim()
+        const prevPlatform = String(prev.platform_name || '').trim()
+        const shouldSyncPlatform =
+          !prevPlatform || prevPlatform === 'Karigar Setu' || prevPlatform === prevCompany
+        return {
+          ...prev,
+          company_name: value,
+          ...(shouldSyncPlatform ? { platform_name: value } : {}),
+        }
+      }
+      return { ...prev, [key]: value }
+    })
+  }
+
+  const handleLogoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setLogoUploading(true)
+    setErrorMsg('')
+    try {
+      await uploadLogo(file)
+      setSuccessMsg('Company logo uploaded and synced across platform & technician ID cards!')
+      setTimeout(() => setSuccessMsg(''), 4000)
+    } catch (err: any) {
+      setErrorMsg(err?.response?.data?.message || 'Failed to upload company logo.')
+    } finally {
+      setLogoUploading(false)
+    }
+  }
+
+  const handleRemoveLogo = async () => {
+    setLogoUploading(true)
+    setErrorMsg('')
+    try {
+      await deleteLogo()
+      setSuccessMsg('Company logo removed.')
+      setTimeout(() => setSuccessMsg(''), 4000)
+    } catch (err: any) {
+      setErrorMsg(err?.response?.data?.message || 'Failed to remove company logo.')
+    } finally {
+      setLogoUploading(false)
+    }
   }
 
   const handleSaveAll = async (e: React.FormEvent) => {
@@ -161,11 +211,10 @@ export function SettingsPage() {
         <button
           type="button"
           onClick={() => setActiveTab('themes')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
-            activeTab === 'themes'
-              ? 'bg-indigo-600 text-white shadow-xs ring-2 ring-indigo-500/20'
-              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-          }`}
+          className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap shrink-0 ${activeTab === 'themes'
+            ? 'bg-indigo-600 text-white shadow-xs ring-2 ring-indigo-500/20'
+            : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+            }`}
         >
           <Palette className="h-4 w-4 shrink-0" />
           <span>Themes &amp; Appearance</span>
@@ -174,11 +223,10 @@ export function SettingsPage() {
         <button
           type="button"
           onClick={() => setActiveTab('branding')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
-            activeTab === 'branding'
-              ? 'bg-indigo-600 text-white shadow-xs ring-2 ring-indigo-500/20'
-              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-          }`}
+          className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap shrink-0 ${activeTab === 'branding'
+            ? 'bg-indigo-600 text-white shadow-xs ring-2 ring-indigo-500/20'
+            : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+            }`}
         >
           <Building className="h-4 w-4 shrink-0" />
           <span>Platform &amp; Branding</span>
@@ -187,11 +235,10 @@ export function SettingsPage() {
         <button
           type="button"
           onClick={() => setActiveTab('operations')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
-            activeTab === 'operations'
-              ? 'bg-indigo-600 text-white shadow-xs ring-2 ring-indigo-500/20'
-              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-          }`}
+          className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap shrink-0 ${activeTab === 'operations'
+            ? 'bg-indigo-600 text-white shadow-xs ring-2 ring-indigo-500/20'
+            : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+            }`}
         >
           <Wrench className="h-4 w-4 shrink-0" />
           <span>Operations &amp; Dispatch</span>
@@ -200,11 +247,10 @@ export function SettingsPage() {
         <button
           type="button"
           onClick={() => setActiveTab('messaging')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
-            activeTab === 'messaging'
-              ? 'bg-indigo-600 text-white shadow-xs ring-2 ring-indigo-500/20'
-              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-          }`}
+          className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap shrink-0 ${activeTab === 'messaging'
+            ? 'bg-indigo-600 text-white shadow-xs ring-2 ring-indigo-500/20'
+            : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+            }`}
         >
           <MessageSquare className="h-4 w-4 shrink-0" />
           <span>WhatsApp &amp; Templates</span>
@@ -213,11 +259,10 @@ export function SettingsPage() {
         <button
           type="button"
           onClick={() => setActiveTab('security')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
-            activeTab === 'security'
-              ? 'bg-indigo-600 text-white shadow-xs ring-2 ring-indigo-500/20'
-              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-          }`}
+          className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap shrink-0 ${activeTab === 'security'
+            ? 'bg-indigo-600 text-white shadow-xs ring-2 ring-indigo-500/20'
+            : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+            }`}
         >
           <Shield className="h-4 w-4 shrink-0" />
           <span>Security &amp; Sessions</span>
@@ -250,11 +295,10 @@ export function SettingsPage() {
                     <button
                       type="button"
                       onClick={() => handleFieldChange('theme', 'light')}
-                      className={`p-4 rounded-xl border-2 text-left flex items-center gap-3 transition-all ${
-                        formData.theme === 'light'
-                          ? 'border-indigo-600 bg-indigo-50/50 shadow-xs ring-2 ring-indigo-500/20'
-                          : 'border-slate-200 hover:border-slate-300 bg-white'
-                      }`}
+                      className={`p-4 rounded-xl border-2 text-left flex items-center gap-3 transition-all ${formData.theme === 'light'
+                        ? 'border-indigo-600 bg-indigo-50/50 shadow-xs ring-2 ring-indigo-500/20'
+                        : 'border-slate-200 hover:border-slate-300 bg-white'
+                        }`}
                     >
                       <div className="h-10 w-10 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
                         <Sun className="h-5 w-5" />
@@ -269,11 +313,10 @@ export function SettingsPage() {
                     <button
                       type="button"
                       onClick={() => handleFieldChange('theme', 'dark')}
-                      className={`p-4 rounded-xl border-2 text-left flex items-center gap-3 transition-all ${
-                        formData.theme === 'dark'
-                          ? 'border-indigo-600 bg-slate-900 text-white shadow-xs ring-2 ring-indigo-500/20'
-                          : 'border-slate-200 hover:border-slate-300 bg-slate-900 text-slate-100'
-                      }`}
+                      className={`p-4 rounded-xl border-2 text-left flex items-center gap-3 transition-all ${formData.theme === 'dark'
+                        ? 'border-indigo-600 bg-slate-900 text-white shadow-xs ring-2 ring-indigo-500/20'
+                        : 'border-slate-200 hover:border-slate-300 bg-slate-900 text-slate-100'
+                        }`}
                     >
                       <div className="h-10 w-10 rounded-lg bg-slate-800 text-indigo-400 flex items-center justify-center shrink-0">
                         <Moon className="h-5 w-5" />
@@ -288,11 +331,10 @@ export function SettingsPage() {
                     <button
                       type="button"
                       onClick={() => handleFieldChange('theme', 'system')}
-                      className={`p-4 rounded-xl border-2 text-left flex items-center gap-3 transition-all ${
-                        formData.theme === 'system'
-                          ? 'border-indigo-600 bg-indigo-50/50 shadow-xs ring-2 ring-indigo-500/20'
-                          : 'border-slate-200 hover:border-slate-300 bg-white'
-                      }`}
+                      className={`p-4 rounded-xl border-2 text-left flex items-center gap-3 transition-all ${formData.theme === 'system'
+                        ? 'border-indigo-600 bg-indigo-50/50 shadow-xs ring-2 ring-indigo-500/20'
+                        : 'border-slate-200 hover:border-slate-300 bg-white'
+                        }`}
                     >
                       <div className="h-10 w-10 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
                         <Laptop className="h-5 w-5" />
@@ -319,11 +361,10 @@ export function SettingsPage() {
                           key={c.id}
                           type="button"
                           onClick={() => handleFieldChange('primary_color', c.id)}
-                          className={`p-3 rounded-xl border text-center transition-all flex flex-col items-center justify-center gap-2 ${
-                            isSelected
-                              ? 'border-slate-900 bg-slate-50 ring-2 ring-slate-900/20 shadow-xs font-bold'
-                              : 'border-slate-200 hover:border-slate-300 bg-white text-slate-700'
-                          }`}
+                          className={`p-3 rounded-xl border text-center transition-all flex flex-col items-center justify-center gap-2 ${isSelected
+                            ? 'border-slate-900 bg-slate-50 ring-2 ring-slate-900/20 shadow-xs font-bold'
+                            : 'border-slate-200 hover:border-slate-300 bg-white text-slate-700'
+                            }`}
                         >
                           <div className={`h-8 w-8 rounded-full ${c.bg} flex items-center justify-center text-white shadow-xs`}>
                             {isSelected && <Check className="h-4 w-4" />}
@@ -389,24 +430,85 @@ export function SettingsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="pt-5 space-y-4">
+                {/* Company Logo Uploader */}
+                <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="h-16 w-16 rounded-xl border border-slate-200 bg-white flex items-center justify-center overflow-hidden shrink-0 shadow-xs">
+                      {settings.company_logo_url ? (
+                        <img
+                          src={resolveAssetUrl(settings.company_logo_url)}
+                          alt={formData.company_name || formData.platform_name || 'Company Logo'}
+                          className="h-full w-full object-contain p-1"
+                        />
+                      ) : (
+                        <ImageIcon className="h-7 w-7 text-slate-300" />
+                      )}
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs font-semibold text-slate-800 block">
+                        Official Company Logo (Shown on Sidebar &amp; Technician ID Cards)
+                      </Label>
+                      <p className="text-[11px] text-slate-500">
+                        PNG, JPG, or WEBP up to 5MB. Recommended square or horizontal transparent logo.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <input
+                      ref={logoInputRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/jpg,image/webp"
+                      className="hidden"
+                      onChange={handleLogoFileChange}
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={logoUploading}
+                      onClick={() => logoInputRef.current?.click()}
+                      className="h-8 text-xs bg-white border-indigo-200 text-indigo-700 hover:bg-indigo-50 flex items-center gap-1.5"
+                    >
+                      <Upload className="h-3.5 w-3.5" />
+                      {logoUploading ? 'Uploading...' : settings.company_logo_url ? 'Change Logo' : 'Upload Logo'}
+                    </Button>
+                    {settings.company_logo_url && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={logoUploading}
+                        onClick={handleRemoveLogo}
+                        className="h-8 text-xs text-rose-600 border-rose-200 bg-white hover:bg-rose-50 flex items-center gap-1"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-medium text-slate-700">Platform Display Name *</Label>
+                    <Label className="text-xs font-medium text-slate-700">
+                      Company Name * <span className="text-[11px] font-normal text-slate-500">(Used everywhere in app &amp; ID cards)</span>
+                    </Label>
                     <Input
                       required
-                      value={formData.platform_name}
-                      onChange={(e) => handleFieldChange('platform_name', e.target.value)}
-                      placeholder="e.g. US Platform"
+                      value={formData.company_name}
+                      onChange={(e) => handleFieldChange('company_name', e.target.value)}
+                      placeholder="e.g. FutureMagnus Pvt Ltd"
                       className="h-9 text-xs"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-medium text-slate-700">Company Legal Name</Label>
+                    <Label className="text-xs font-medium text-slate-700">Platform Display Name</Label>
                     <Input
-                      value={formData.company_name}
-                      onChange={(e) => handleFieldChange('company_name', e.target.value)}
-                      placeholder="e.g. Karigar Setu Pvt Ltd"
+                      value={formData.platform_name}
+                      onChange={(e) => handleFieldChange('platform_name', e.target.value)}
+                      placeholder="e.g. FutureMagnus"
                       className="h-9 text-xs"
                     />
                   </div>
@@ -639,6 +741,7 @@ export function SettingsPage() {
                   <div className="flex flex-wrap gap-1 items-center">
                     <span className="text-[10px] text-slate-500 font-semibold uppercase mr-1">Available Tags:</span>
                     {[
+                      '{{company_name}}',
                       '{{platform_name}}',
                       '{{job_id}}',
                       '{{technician_name}}',
@@ -691,6 +794,7 @@ export function SettingsPage() {
                   <div className="flex flex-wrap gap-1 items-center">
                     <span className="text-[10px] text-slate-500 font-semibold uppercase mr-1">Available Tags:</span>
                     {[
+                      '{{company_name}}',
                       '{{platform_name}}',
                       '{{technician_name}}',
                       '{{job_id}}',

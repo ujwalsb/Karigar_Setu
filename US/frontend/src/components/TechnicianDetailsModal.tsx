@@ -7,8 +7,12 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { techniciansApi } from '@/api/technicians'
-import { formatDate, getStatusColor } from '@/lib/utils'
+import { techniciansApi, openTechnicianDocument } from '@/api/technicians'
+import { formatDate, getStatusColor, resolveAssetUrl, getResolvedCompanyName } from '@/lib/utils'
+import { useSettings } from '@/store/settingsStore'
+import { TechnicianIdCard } from '@/components/TechnicianIdCard'
+import { TechnicianIdCardModal } from '@/components/TechnicianIdCardModal'
+import { printTechnicianIdCard, downloadTechnicianIdCardPng } from '@/lib/idCard'
 import {
   User,
   Phone,
@@ -38,6 +42,10 @@ import {
   Receipt,
   Percent,
   CreditCard,
+  Contact2,
+  Printer,
+  Download,
+  Building2,
 } from 'lucide-react'
 
 interface TechnicianDetailsModalProps {
@@ -57,13 +65,19 @@ export function TechnicianDetailsModal({
   onTechnicianUpdated,
   isAdmin = true,
 }: TechnicianDetailsModalProps) {
+  const { settings } = useSettings()
+  const companyName = getResolvedCompanyName(settings)
   const [loading, setLoading] = useState(false)
   const [tech, setTech] = useState<any | null>(null)
   const [history, setHistory] = useState<any[]>([])
   const [documents, setDocuments] = useState<any[]>([])
-  const [activeTab, setActiveTab] = useState<'history' | 'profile' | 'skills' | 'documents' | 'billing'>('history')
+  const [activeTab, setActiveTab] = useState<'history' | 'profile' | 'skills' | 'documents' | 'billing' | 'id_card'>('history')
   const [errorMsg, setErrorMsg] = useState('')
+  const [docErrorMsg, setDocErrorMsg] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
+  const [isIdCardEditorOpen, setIsIdCardEditorOpen] = useState(false)
+  const [idCardEditTab, setIdCardEditTab] = useState<'technician' | 'company'>('technician')
+  const [downloadingPng, setDownloadingPng] = useState(false)
 
   // Lightbox preview for machine photo or documents
   const [previewImage, setPreviewImage] = useState<string | null>(null)
@@ -110,8 +124,10 @@ export function TechnicianDetailsModal({
       setHistory([])
       setDocuments([])
       setErrorMsg('')
+      setDocErrorMsg('')
       setSuccessMsg('')
       setPreviewImage(null)
+      setIsIdCardEditorOpen(false)
     }
   }, [open, technicianId])
 
@@ -146,6 +162,15 @@ export function TechnicianDetailsModal({
       alert(err.response?.data?.message || 'Failed to delete document.')
     } finally {
       setDeletingDocId(null)
+    }
+  }
+
+  const handleViewDoc = async (doc: any) => {
+    setDocErrorMsg('')
+    try {
+      await openTechnicianDocument(doc.id, doc.mime_type)
+    } catch (err: any) {
+      setDocErrorMsg(err?.message || 'File not found on disk.')
     }
   }
 
@@ -187,13 +212,13 @@ export function TechnicianDetailsModal({
                   <div
                     className="relative group cursor-pointer"
                     onClick={() => {
-                      setPreviewImage(tech.photo_url)
+                      setPreviewImage(resolveAssetUrl(tech.photo_url))
                       setPreviewTitle(`${tech.full_name || tech.name} - Profile Photo`)
                     }}
                     title="Click to view full photo"
                   >
                     <img
-                      src={tech.photo_url}
+                      src={resolveAssetUrl(tech.photo_url)}
                       alt={tech.full_name || tech.name}
                       className="h-16 w-16 rounded-full object-cover border-2 border-indigo-200 shadow-sm"
                     />
@@ -235,18 +260,18 @@ export function TechnicianDetailsModal({
                     <Badge
                       variant="outline"
                       className={`text-[11px] capitalize flex items-center gap-1 ${tech?.availability === 'available'
-                          ? 'border-emerald-300 text-emerald-700 bg-emerald-50'
-                          : tech?.availability === 'busy'
-                            ? 'border-amber-300 text-amber-700 bg-amber-50'
-                            : 'border-slate-300 text-slate-600 bg-slate-50'
+                        ? 'border-emerald-300 text-emerald-700 bg-emerald-50'
+                        : tech?.availability === 'busy'
+                          ? 'border-amber-300 text-amber-700 bg-amber-50'
+                          : 'border-slate-300 text-slate-600 bg-slate-50'
                         }`}
                     >
                       <span
                         className={`h-2 w-2 rounded-full ${tech?.availability === 'available'
-                            ? 'bg-emerald-500'
-                            : tech?.availability === 'busy'
-                              ? 'bg-amber-500'
-                              : 'bg-slate-400'
+                          ? 'bg-emerald-500'
+                          : tech?.availability === 'busy'
+                            ? 'bg-amber-500'
+                            : 'bg-slate-400'
                           }`}
                       />
                       {tech?.availability || 'Available'}
@@ -301,7 +326,7 @@ export function TechnicianDetailsModal({
                     </a>
                     <a
                       href={`https://wa.me/91${cleanMobile}?text=${encodeURIComponent(
-                        `Hello ${tech.full_name || tech.name}, message from Karigar Setu Support Admin.`
+                        `Hello ${tech.full_name || tech.name}, message from ${companyName} Support Admin.`
                       )}`}
                       target="_blank"
                       rel="noreferrer"
@@ -371,8 +396,8 @@ export function TechnicianDetailsModal({
                 type="button"
                 onClick={() => setActiveTab('history')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-all whitespace-nowrap shrink-0 ${activeTab === 'history'
-                    ? 'bg-indigo-600 text-white shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  ? 'bg-indigo-600 text-white shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                   }`}
               >
                 <Briefcase className="h-3.5 w-3.5" />
@@ -383,8 +408,8 @@ export function TechnicianDetailsModal({
                 type="button"
                 onClick={() => setActiveTab('profile')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-all whitespace-nowrap shrink-0 ${activeTab === 'profile'
-                    ? 'bg-indigo-600 text-white shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  ? 'bg-indigo-600 text-white shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                   }`}
               >
                 <User className="h-3.5 w-3.5" />
@@ -395,8 +420,8 @@ export function TechnicianDetailsModal({
                 type="button"
                 onClick={() => setActiveTab('skills')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-all whitespace-nowrap shrink-0 ${activeTab === 'skills'
-                    ? 'bg-indigo-600 text-white shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  ? 'bg-indigo-600 text-white shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                   }`}
               >
                 <Wrench className="h-3.5 w-3.5" />
@@ -407,8 +432,8 @@ export function TechnicianDetailsModal({
                 type="button"
                 onClick={() => setActiveTab('documents')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-all whitespace-nowrap shrink-0 ${activeTab === 'documents'
-                    ? 'bg-indigo-600 text-white shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  ? 'bg-indigo-600 text-white shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                   }`}
               >
                 <ShieldCheck className="h-3.5 w-3.5" />
@@ -419,12 +444,23 @@ export function TechnicianDetailsModal({
                 type="button"
                 onClick={() => setActiveTab('billing')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-all whitespace-nowrap shrink-0 ${activeTab === 'billing'
-                    ? 'bg-indigo-600 text-white shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  ? 'bg-indigo-600 text-white shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                   }`}
               >
                 <Receipt className="h-3.5 w-3.5" />
                 Plan & Billing
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('id_card')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-all whitespace-nowrap shrink-0 ${activeTab === 'id_card'
+                  ? 'bg-indigo-600 text-white shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  }`}
+              >
+                <Contact2 className="h-3.5 w-3.5" />
+                ID Card
               </button>
             </div>
           </DialogHeader>
@@ -498,10 +534,10 @@ export function TechnicianDetailsModal({
                                     <Badge
                                       variant="outline"
                                       className={`text-[10px] uppercase font-semibold ${isCompleted
-                                          ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
-                                          : req.status === 'in_progress'
-                                            ? 'bg-blue-50 text-blue-700 border-blue-300'
-                                            : 'bg-amber-50 text-amber-700 border-amber-300'
+                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                                        : req.status === 'in_progress'
+                                          ? 'bg-blue-50 text-blue-700 border-blue-300'
+                                          : 'bg-amber-50 text-amber-700 border-amber-300'
                                         }`}
                                     >
                                       {req.status?.replace('_', ' ')}
@@ -714,8 +750,8 @@ export function TechnicianDetailsModal({
                           <div className="mt-0.5">
                             <Badge
                               className={`text-[10px] capitalize ${tech.status === 'active'
-                                  ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
-                                  : 'bg-red-100 text-red-800 border-red-200'
+                                ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                                : 'bg-red-100 text-red-800 border-red-200'
                                 }`}
                             >
                               {tech.status || 'Active'}
@@ -860,6 +896,13 @@ export function TechnicianDetailsModal({
                         </span>
                       </div>
 
+                      {docErrorMsg && (
+                        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs flex items-center gap-2">
+                          <AlertCircle className="h-4 w-4 shrink-0" />
+                          <span>{docErrorMsg}</span>
+                        </div>
+                      )}
+
                       {documents.length === 0 ? (
                         <div className="py-10 text-center bg-slate-50 rounded-lg border border-dashed border-slate-300 p-6">
                           <FileText className="h-8 w-8 text-slate-300 mx-auto mb-2" />
@@ -913,14 +956,13 @@ export function TechnicianDetailsModal({
                               </div>
 
                               <div className="flex items-center gap-1.5 shrink-0">
-                                <a
-                                  href={`/api/v1/documents/${doc.id}/download?inline=true`}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="text-xs text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 px-2.5 py-1 rounded border border-indigo-200 flex items-center gap-1 bg-white font-medium"
+                                <button
+                                  type="button"
+                                  onClick={() => handleViewDoc(doc)}
+                                  className="text-xs text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 px-2.5 py-1 rounded border border-indigo-200 flex items-center gap-1 bg-white font-medium cursor-pointer"
                                 >
                                   <Eye className="h-3.5 w-3.5" /> View Doc
-                                </a>
+                                </button>
 
                                 {isAdmin && !doc.is_verified && (
                                   <Button
@@ -1069,11 +1111,110 @@ export function TechnicianDetailsModal({
                     </div>
                   </div>
                 )}
+
+                {/* TAB 6: ID CARD */}
+                {activeTab === 'id_card' && (
+                  <div className="space-y-5">
+                    <div className="bg-white rounded-xl border border-slate-200 p-4 flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <h4 className="text-sm font-semibold text-slate-800">Official Technician ID Card</h4>
+                        <p className="text-xs text-slate-500">
+                          Generated from photo, mobile, service location, and company branding settings.
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => printTechnicianIdCard(tech, settings)}
+                          className="h-8 text-xs flex items-center gap-1.5"
+                        >
+                          <Printer className="h-3.5 w-3.5" />
+                          Print / PDF
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={downloadingPng}
+                          onClick={async () => {
+                            try {
+                              setDownloadingPng(true)
+                              await downloadTechnicianIdCardPng(tech, settings)
+                            } finally {
+                              setDownloadingPng(false)
+                            }
+                          }}
+                          className="h-8 text-xs flex items-center gap-1.5"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                          {downloadingPng ? 'Exporting...' : 'Download PNG'}
+                        </Button>
+                        {isAdmin && (
+                          <>
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={() => {
+                                setIdCardEditTab('technician')
+                                setIsIdCardEditorOpen(true)
+                              }}
+                              className="h-8 text-xs bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-1.5"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                              Edit Card Data
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setIdCardEditTab('company')
+                                setIsIdCardEditorOpen(true)
+                              }}
+                              className="h-8 text-xs border-indigo-200 text-indigo-700 bg-indigo-50/70 hover:bg-indigo-100 flex items-center gap-1.5"
+                            >
+                              <Building2 className="h-3.5 w-3.5" />
+                              Company &amp; Logo
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex justify-center py-2">
+                      <TechnicianIdCard
+                        technician={tech}
+                        company={settings}
+                        showEditButton={isAdmin}
+                        onEdit={() => {
+                          setIdCardEditTab('technician')
+                          setIsIdCardEditorOpen(true)
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* ID CARD LIVE EDITOR MODAL */}
+      <TechnicianIdCardModal
+        open={isIdCardEditorOpen}
+        onOpenChange={setIsIdCardEditorOpen}
+        technician={tech}
+        initialEditMode={isAdmin}
+        initialEditTab={idCardEditTab}
+        isAdmin={isAdmin}
+        onSaved={() => {
+          loadData()
+          onTechnicianUpdated?.()
+        }}
+      />
 
       {/* LIGHTBOX PREVIEW DIALOG */}
       {previewImage && (

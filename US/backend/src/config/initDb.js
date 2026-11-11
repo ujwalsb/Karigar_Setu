@@ -88,6 +88,11 @@ async function initDatabase() {
         availability ENUM('available', 'busy', 'offline') DEFAULT 'available',
         status ENUM('active', 'inactive') DEFAULT 'active',
         consent_given BOOLEAN DEFAULT TRUE,
+        designation VARCHAR(100) NULL,
+        badge_code VARCHAR(50) NULL,
+        id_card_valid_until DATE NULL,
+        blood_group VARCHAR(15) NULL,
+        id_card_theme VARCHAR(30) NULL,
         created_by INT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -104,6 +109,25 @@ async function initDatabase() {
         INDEX idx_tech_status (status)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
+
+    // Ensure ID card & profile columns exist on existing technicians tables
+    const techExtraColumns = [
+      { name: 'designation', definition: 'VARCHAR(100) NULL' },
+      { name: 'badge_code', definition: 'VARCHAR(50) NULL' },
+      { name: 'id_card_valid_until', definition: 'DATE NULL' },
+      { name: 'blood_group', definition: 'VARCHAR(15) NULL' },
+      { name: 'id_card_theme', definition: 'VARCHAR(30) NULL' }
+    ];
+    for (const col of techExtraColumns) {
+      const [existingCols] = await db.query(
+        `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'technicians' AND COLUMN_NAME = ?`,
+        [col.name]
+      );
+      if (existingCols.length === 0) {
+        await db.query(`ALTER TABLE technicians ADD COLUMN ${col.name} ${col.definition}`);
+      }
+    }
 
     // 5. Technician Skills
     await db.query(`
@@ -307,6 +331,7 @@ async function initDatabase() {
     // 16. Seed Default Platform Settings
     const defaultSettings = [
       ['company_name', 'Karigar Setu', 'general'],
+      ['company_logo_url', '', 'general'],
       ['support_phone', '9876543210', 'general'],
       ['support_email', 'support@karigarsetu.com', 'general'],
       ['theme', 'indigo', 'appearance'],

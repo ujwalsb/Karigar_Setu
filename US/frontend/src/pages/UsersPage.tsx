@@ -42,10 +42,16 @@ import {
   User as UserIcon,
   Power
 } from 'lucide-react'
-import { formatDate } from '@/lib/utils'
+import { formatDate, getResolvedCompanyName } from '@/lib/utils'
+import { useSettings } from '@/store/settingsStore'
 
 export function UsersPage() {
   const { user: currentUser } = useAuth()
+  const { settings } = useSettings()
+  const companyName = getResolvedCompanyName(settings)
+  const emailDomain = (settings.support_email || '').includes('@')
+    ? settings.support_email.split('@')[1].trim()
+    : 'company.com'
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -397,8 +403,8 @@ export function UsersPage() {
               type="button"
               onClick={() => setRoleFilter('all')}
               className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all shrink-0 ${roleFilter === 'all'
-                  ? 'bg-indigo-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
                 }`}
             >
               All Users ({stats.total})
@@ -408,8 +414,8 @@ export function UsersPage() {
               type="button"
               onClick={() => setRoleFilter('admin')}
               className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all shrink-0 flex items-center gap-1.5 ${roleFilter === 'admin'
-                  ? 'bg-indigo-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-indigo-700 hover:bg-indigo-50'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'text-slate-600 hover:text-indigo-700 hover:bg-indigo-50'
                 }`}
             >
               <Shield className="h-3 w-3" />
@@ -420,8 +426,8 @@ export function UsersPage() {
               type="button"
               onClick={() => setRoleFilter('support')}
               className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all shrink-0 flex items-center gap-1.5 ${roleFilter === 'support'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-emerald-700 hover:bg-emerald-50'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'text-slate-600 hover:text-emerald-700 hover:bg-emerald-50'
                 }`}
             >
               <Headphones className="h-3 w-3" />
@@ -433,8 +439,8 @@ export function UsersPage() {
                 type="button"
                 onClick={() => setRoleFilter('inactive')}
                 className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all shrink-0 flex items-center gap-1.5 ${roleFilter === 'inactive'
-                    ? 'bg-rose-600 text-white shadow-xs'
-                    : 'text-rose-700 hover:bg-rose-50'
+                  ? 'bg-rose-600 text-white shadow-xs'
+                  : 'text-rose-700 hover:bg-rose-50'
                   }`}
               >
                 <UserX className="h-3 w-3" />
@@ -486,8 +492,8 @@ export function UsersPage() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-3">
                       <div className={`h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${u.role === 'admin'
-                          ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
-                          : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                        ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
+                        : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                         }`}>
                         {(u.name || 'U').charAt(0).toUpperCase()}
                       </div>
@@ -554,8 +560,8 @@ export function UsersPage() {
                       onClick={() => handleToggleActive(u)}
                       disabled={isSelf}
                       className={`text-xs h-8 px-2.5 flex items-center gap-1 ${isActive
-                          ? 'text-amber-700 border-amber-200 hover:bg-amber-50'
-                          : 'text-emerald-700 border-emerald-200 hover:bg-emerald-50'
+                        ? 'text-amber-700 border-amber-200 hover:bg-amber-50'
+                        : 'text-emerald-700 border-emerald-200 hover:bg-emerald-50'
                         }`}
                     >
                       <Power className="h-3 w-3" />
@@ -633,8 +639,8 @@ export function UsersPage() {
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
                           <div className={`h-9 w-9 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${u.role === 'admin'
-                              ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
-                              : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                            ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
+                            : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                             }`}>
                             {(u.name || 'U').charAt(0).toUpperCase()}
                           </div>
@@ -718,8 +724,8 @@ export function UsersPage() {
                             onClick={() => handleToggleActive(u)}
                             disabled={isSelf}
                             className={`h-7 w-7 p-0 ${isActive
-                                ? 'text-amber-600 hover:text-amber-800 hover:bg-amber-50'
-                                : 'text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50'
+                              ? 'text-amber-600 hover:text-amber-800 hover:bg-amber-50'
+                              : 'text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50'
                               }`}
                             title={
                               isSelf
@@ -751,8 +757,8 @@ export function UsersPage() {
                             onClick={() => handleOpenDeleteModal(u)}
                             disabled={isSelf}
                             className={`h-7 text-xs px-2.5 border-rose-200 shadow-2xs font-medium flex items-center gap-1 ${isSelf
-                                ? 'text-slate-300 border-slate-200 cursor-not-allowed'
-                                : 'text-rose-600 hover:text-rose-700 hover:bg-rose-50'
+                              ? 'text-slate-300 border-slate-200 cursor-not-allowed'
+                              : 'text-rose-600 hover:text-rose-700 hover:bg-rose-50'
                               }`}
                             title={isSelf ? 'Cannot delete your own account' : 'Delete user account'}
                           >
@@ -781,7 +787,7 @@ export function UsersPage() {
               Add New Staff Account
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-500">
-              Create credentials for an employee to access the Karigar Setu dashboard.
+              Create credentials for an employee to access the {companyName} dashboard.
             </DialogDescription>
           </DialogHeader>
 
@@ -802,7 +808,7 @@ export function UsersPage() {
               <Input
                 type="email"
                 required
-                placeholder="e.g. rahul@karigarsetu.com"
+                placeholder={`e.g. rahul@${emailDomain || 'company.com'}`}
                 value={addEmail}
                 onChange={(e) => setAddEmail(e.target.value)}
                 className="h-9 text-xs"

@@ -25,6 +25,8 @@ const notificationRoutes = require('./routes/notifications');
 const publicJobReportRoutes = require('./routes/publicJobReport');
 const technicianPlanRoutes = require('./routes/technicianPlans');
 const errorHandler = require('./middleware/errorHandler');
+const db = require('./config/database');
+const { getBrandingFromDb } = require('./utils/branding');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -35,7 +37,12 @@ app.use(helmet({
 }));
 
 // Static files (uploads: technician photos, government IDs)
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+const backendUploadsDir = path.join(__dirname, '../uploads');
+app.use('/uploads', express.static(backendUploadsDir));
+const rootUploadsDir = path.join(__dirname, '../../uploads');
+if (rootUploadsDir !== backendUploadsDir && fs.existsSync(rootUploadsDir)) {
+  app.use('/uploads', express.static(rootUploadsDir));
+}
 
 // Serve Frontend static assets if built into public/
 const publicDir = path.join(__dirname, '../public');
@@ -116,8 +123,14 @@ app.use('/api/v1/public/job-report', publicJobReportRoutes);
 app.use('/api/v1/technician-plans', technicianPlanRoutes);
 
 // Health check
-app.get('/api/v1/health', (req, res) => {
-  res.json({ success: true, message: 'Karigar Setu API is running', timestamp: new Date().toISOString() });
+app.get('/api/v1/health', async (req, res) => {
+  const branding = await getBrandingFromDb(db);
+  res.json({
+    success: true,
+    companyName: branding.companyName,
+    message: `${branding.companyName} API is running`,
+    timestamp: new Date().toISOString()
+  });
 });
 
 // If frontend build (index.html) exists in public/, serve it for all UI routes (SPA routing)
@@ -132,10 +145,12 @@ if (fs.existsSync(indexHtmlPath)) {
   });
 } else {
   // Fallback API welcome route if frontend is not bundled
-  app.get('/', (req, res) => {
+  app.get('/', async (req, res) => {
+    const branding = await getBrandingFromDb(db);
     res.json({
       success: true,
-      message: 'Karigar Setu Backend API is running successfully',
+      companyName: branding.companyName,
+      message: `${branding.companyName} Backend API is running successfully`,
       status: 'online',
       version: '1.0.0',
       documentation: '/api/v1/health'
@@ -158,15 +173,16 @@ const { initDatabase } = require('./config/initDb');
 
 // Start server after auto-initializing database tables
 initDatabase()
-  .then(() => {
+  .then(async () => {
+    const branding = await getBrandingFromDb(db);
     app.listen(PORT, () => {
-      console.log(`Karigar Setu backend running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
+      console.log(`${branding.companyName} backend running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
     });
   })
   .catch((err) => {
     console.error('Database auto-initialization error:', err);
     app.listen(PORT, () => {
-      console.log(`Karigar Setu backend running on port ${PORT} (with DB warning)`);
+      console.log(`Service platform backend running on port ${PORT} (with DB warning)`);
     });
   });
 

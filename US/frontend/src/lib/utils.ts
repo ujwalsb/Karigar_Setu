@@ -118,6 +118,43 @@ export function getInitials(name: string): string {
     .slice(0, 2)
 }
 
+export const DEFAULT_BRAND_NAME = 'Karigar Setu'
+
+export function getResolvedCompanyName(
+  settings?: { company_name?: string; platform_name?: string } | null
+): string {
+  const company = (settings?.company_name || '').trim()
+  const platform = (settings?.platform_name || '').trim()
+  if (company && company !== DEFAULT_BRAND_NAME) return company
+  if (platform && platform !== DEFAULT_BRAND_NAME) return platform
+  return company || platform || DEFAULT_BRAND_NAME
+}
+
+export function getBrandInitials(name?: string | null): string {
+  const raw = getInitials((name || '').trim())
+  return raw && raw !== '?' ? raw : 'KS'
+}
+
+export function resolveAssetUrl(url?: string | null): string {
+  if (!url) return ''
+  if (/^(https?:\/\/|blob:|data:)/i.test(url)) return url
+  const envUrl = import.meta.env.VITE_API_URL
+  if (
+    envUrl &&
+    /^https?:\/\//i.test(envUrl) &&
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ) {
+    try {
+      const origin = new URL(envUrl).origin
+      return `${origin}${url.startsWith('/') ? '' : '/'}${url}`
+    } catch {
+      // fall through to relative path
+    }
+  }
+  return url.startsWith('/') ? url : `/${url}`
+}
+
 export function debounce<T extends (...args: unknown[]) => unknown>(
   fn: T,
   delay: number

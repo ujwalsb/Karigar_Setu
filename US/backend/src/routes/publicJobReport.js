@@ -5,16 +5,18 @@ const db = require('../config/database');
 const machinePhotoUpload = require('../config/machinePhotoMulter');
 const serviceRequestModel = require('../models/serviceRequestModel');
 const { accrueCommissionForServiceRequest } = require('../controllers/technicianPlanController');
+const { getBrandingFromDb } = require('../utils/branding');
 
 // GET /api/v1/public/job-report/:token - Fetch job details for technician submission
 router.get('/:token', async (req, res, next) => {
   try {
     const { token } = req.params;
+    const branding = await getBrandingFromDb(db);
     const target = await serviceRequestModel.findBySubmissionToken(token);
     if (!target) {
       return res.status(404).json({
         success: false,
-        message: 'Invalid or expired job submission link. Please contact Karigar Setu admin.'
+        message: `Invalid or expired job submission link. Please contact ${branding.companyName} admin.`
       });
     }
 
@@ -44,7 +46,15 @@ router.get('/:token', async (req, res, next) => {
         paymentMode: target.payment_mode || 'cash',
         machinePhotoUrl: target.machine_photo_url || null,
         technicianRemarks: target.technician_remarks || '',
-        completedAt: target.completed_at
+        completedAt: target.completed_at,
+        branding: {
+          companyName: branding.companyName,
+          tagline: branding.tagline,
+          companyLogoUrl: branding.company_logo_url || '',
+          supportPhone: branding.support_phone || '',
+          supportEmail: branding.support_email || '',
+          currencySymbol: branding.currency_symbol || '₹'
+        }
       }
     });
   } catch (err) {
